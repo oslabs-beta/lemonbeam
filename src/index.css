@@ -2,12 +2,11 @@
 
 @layer base {
   :root {
-    --color-purple: #6c5ce8;
-    --color-purple-hover: #7b6df0;
-    --color-purple-soft: #c4b5fd;
-    --color-purple-muted: #211e3b;
+    --color-yellow-pale: #f7f1a0;
+    --color-yellow: #f5e642;
+    --color-yellow-deep: #d4af11;
   }
-  
+
   * {
     box-sizing: border-box;
   }
@@ -73,4 +72,151 @@
     background: rgba(108, 92, 232, 0.35);
     color: #ffffff;
   }
+}
+
+/* ============================================
+  LemonBeam Logo Animations
+============================================ */
+
+.logo-container {
+  position: relative;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+
+  animation: floatLogo 6s ease-in-out infinite;
+}
+
+.logo-container::before {
+  content: "";
+
+  position: absolute;
+
+  width: 210px;
+  height: 210px;
+
+  border-radius: 50%;
+
+  background:
+    radial-gradient(circle,
+      rgba(255, 225, 60, 0.45) 0%,
+      rgba(255, 220, 0, 0.18) 45%,
+      transparent 75%);
+
+  filter: blur(26px);
+
+  animation: haloPulse 4s ease-in-out infinite;
+
+  z-index: -1;
+}
+
+.lemonbeam-logo {
+  overflow: visible;
+
+  animation: glowPulse 4s ease-in-out infinite;
+}
+
+/* ---------------------------------------- */
+/* Floating */
+/* ---------------------------------------- */
+
+@keyframes floatLogo {
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+/* ---------------------------------------- */
+/* Halo */
+/* ---------------------------------------- */
+
+@keyframes haloPulse {
+
+  0%,
+  100% {
+
+    opacity: .45;
+    transform: scale(.95);
+
+  }
+
+  50% {
+
+    opacity: .85;
+    transform: scale(1.08);
+
+  }
+}
+
+/* ---------------------------------------- */
+/* Glow */
+/* ---------------------------------------- */
+
+@keyframes glowPulse {
+
+  0%,
+  100% {
+
+    filter:
+      drop-shadow(0 0 8px rgba(255, 220, 0, .25)) drop-shadow(0 0 18px rgba(255, 220, 0, .18));
+
+  }
+
+  50% {
+
+    filter:
+      drop-shadow(0 0 18px rgba(255, 235, 120, .70)) drop-shadow(0 0 40px rgba(255, 220, 0, .35)) drop-shadow(0 0 70px rgba(255, 220, 0, .18));
+
+  }
+}
+
+/* ---------------------------------------- */
+/* Light Sweep */
+/* ---------------------------------------- */
+
+.beam-sweep {
+
+  animation: beamSweepMove 8s linear infinite;
+
+  transform-origin: center;
+}
+
+@keyframes beamSweepMove {
+
+  0% {
+    transform: translateX(-160px);
+    opacity: 0;
+  }
+
+  8% {
+    opacity: .85;
+  }
+
+  16% {
+    transform: translateX(160px);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translateX(160px);
+    opacity: 0;
+  }
+
+}
+
+/* ---------------------------------------- */
+/* Hover */
+/* ---------------------------------------- */
+
+.logo-container:hover {
+
+  transform: scale(1.03);
+
+  transition: transform .4s ease;
 }
