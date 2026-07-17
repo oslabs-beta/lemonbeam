@@ -1,0 +1,22 @@
+flowchart LR
+    User[User] -->|Submits GitHub URL| Frontend[React + Vite Frontend]
+    Frontend -->|Sends scan request| Backend[Node.js + Express Backend]
+
+    Backend -->|Validates repo and requests exact snapshot| GitHub[GitHub API]
+    GitHub -->|Returns repo metadata, commit SHA, and source files| Backend
+
+    Backend -->|Sends source files| Analyzer[Repo Scanner + Chunker + Classifier]
+    Analyzer -->|Heuristic/regex-based chunking and classification| SQLite[(Temporary SQLite Database)]
+    SQLite -->|Stores file/chunk metadata, classifications, and citation references| SQLite
+
+    Backend --> Coordinator[Task Delegation Coordinator]
+    Coordinator -->|Requests evidence for each guide section| SQLite
+    SQLite -->|Returns source-backed chunks and citation references| Coordinator
+
+    Coordinator -->|Sends bounded prompts with selected evidence| LLM[OpenAI or Anthropic API]
+    LLM -->|Returns guide sections with citations| Coordinator
+
+    Coordinator -->|Assembles Markdown + HTML guide| Backend
+    Backend -->|Deletes temporary repo and database| Cleanup[Cleanup Step]
+    Backend -->|Returns completed guide| Frontend
+    Frontend -->|Displays guide for reading, downloading, or sharing| User

@@ -1,0 +1,3 @@
+-- SQLite schema placeholder.
+-- This file will define the chunks table and any future tables LemonBeam needs
+-- for scans, generated guide sections, or citation metadata.
