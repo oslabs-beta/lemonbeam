@@ -5,11 +5,17 @@ import LemonBeamLogo from "./components/LemonBeamLogo";
 
 function App() {
   const [url, setUrl] = useState("");
+  // TODO (BYOK): add const [apiKey, setApiKey] = useState("");
+  // Render it as a type="password" input next to the repo URL input.
+  // Never persist it (no localStorage/cookies) and never log it.
+  // See PROJECT_BRIEF.md > User Flow and API_CONTRACT.md for the contract.
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!url.trim()) return;
     // TODO: wire this up to your backend once the pipeline endpoint exists.
+    // TODO (BYOK): include openaiApiKey in the POST /api/scans body:
+    //   { repositoryUrl: url.trim(), openaiApiKey: apiKey.trim() }
     console.log("Submitted repo:", url.trim());
   }
 

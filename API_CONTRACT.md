@@ -57,7 +57,9 @@ Requests containing unexpected fields return `400 Bad Request` with the error co
 
 ### Secrets
 
-The frontend must never send GitHub tokens, LLM API keys, or other server secrets as part of a scan request.
+The frontend must never send GitHub tokens or other server secrets as part of a scan request.
+
+The one exception is the OpenAI API key: LemonBeam is bring-your-own-key (BYOK), so the user's own OpenAI API key is sent as part of the scan request. It is a transient, per-request credential rather than a server secret — the backend uses it only in memory for that single scan and must never log it, persist it, or echo it back in a response.
 
 ## Error Response Format
 
@@ -110,7 +112,8 @@ POST /api/scans
 
 ```json
 {
-  "repositoryUrl": "https://github.com/example/project"
+  "repositoryUrl": "https://github.com/example/project",
+  "openaiApiKey": "sk-..."
 }
 ```
 
@@ -119,6 +122,7 @@ POST /api/scans
 | Field | Type | Required | Description |
 |---|---|---:|---|
 | `repositoryUrl` | string | Yes | URL of the public GitHub repository to scan |
+| `openaiApiKey` | string | Yes | User-supplied OpenAI API key used only for this scan request |
 
 ### Request Rules
 
@@ -131,6 +135,13 @@ POST /api/scans
 - identify a repository supported by the LemonBeam MVP
 
 The backend validates repository support before downloading and analyzing the source snapshot.
+
+`openaiApiKey` must:
+
+- be a non-empty string
+- match the expected OpenAI API key format
+
+The backend validates the key's format before starting the scan, and validates the key itself (via the OpenAI API) before it is used for guide generation. The key is held in memory only for the lifetime of the request and is discarded once the scan completes or fails.
 
 ## Successful Response
 
@@ -243,6 +254,8 @@ Possible codes:
 - `INVALID_REQUEST_BODY`
 - `MISSING_REPOSITORY_URL`
 - `INVALID_REPOSITORY_URL`
+- `MISSING_OPENAI_API_KEY`
+- `INVALID_OPENAI_API_KEY`
 
 ## Repository Not Found
 
@@ -372,6 +385,29 @@ Possible codes:
 
 The response must not expose upstream API keys, raw provider responses, or sensitive server details.
 
+## OpenAI API Key Rejected
+
+Returned when the supplied `openaiApiKey` is well-formed but OpenAI rejects it — for example, an invalid, revoked, or expired key.
+
+This is distinct from `INVALID_OPENAI_API_KEY`, which covers a key that fails LemonBeam's own format check before any call is made to OpenAI.
+
+### Status
+
+```http
+401 Unauthorized
+```
+
+### Example
+
+```json
+{
+  "error": {
+    "code": "LLM_AUTHENTICATION_FAILED",
+    "message": "The supplied OpenAI API key was rejected. Check that the key is valid and has available quota."
+  }
+}
+```
+
 ## Rate Limit
 
 Returned when LemonBeam or an external provider cannot accept another request because of rate limits.
@@ -430,7 +466,8 @@ Internal errors must not expose:
 | Status | Meaning | Common error codes |
 |---:|---|---|
 | `200` | Scan completed and guide returned | — |
-| `400` | Invalid request body or repository URL | `INVALID_REQUEST_BODY`, `MISSING_REPOSITORY_URL`, `INVALID_REPOSITORY_URL` |
+| `400` | Invalid request body, repository URL, or API key format | `INVALID_REQUEST_BODY`, `MISSING_REPOSITORY_URL`, `INVALID_REPOSITORY_URL`, `MISSING_OPENAI_API_KEY`, `INVALID_OPENAI_API_KEY` |
+| `401` | OpenAI rejected the supplied API key | `LLM_AUTHENTICATION_FAILED` |
 | `403` | Repository is not publicly accessible | `REPOSITORY_NOT_PUBLIC` |
 | `404` | Repository does not exist | `REPOSITORY_NOT_FOUND` |
 | `413` | Repository exceeds the supported size | `REPOSITORY_TOO_LARGE` |
@@ -445,10 +482,12 @@ Internal errors must not expose:
 
 The React frontend should:
 
-- send only the `repositoryUrl` required by this contract
+- send only the fields required by this contract (`repositoryUrl` and `openaiApiKey`)
+- collect the user's OpenAI API key through a masked input, similar to a password field
+- never persist the API key beyond the active session (no `localStorage`, no cookies) and never log it
 - disable duplicate submissions while a scan request is active
 - handle non-`200` responses using the standard error shape
-- show the returned error message clearly
+- show the returned error message clearly, including when the API key is missing, malformed, or rejected
 - display the generated guide after a successful response
 - use `guide.markdown` for copying or Markdown download
 - never expose server secrets
@@ -457,7 +496,10 @@ The React frontend should:
 
 The Express backend should:
 
-- validate the request body
+- validate the request body, including the `openaiApiKey` format
+- hold the user-supplied API key in memory only for the duration of the request
+- never log, persist, or return the API key in any response, including error responses
+- pass the key to the LLM provider for that request only
 - return the status codes and response shapes defined here
 - keep error codes stable once the frontend depends on them
 - avoid leaking internal or sensitive information

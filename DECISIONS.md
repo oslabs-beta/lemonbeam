@@ -396,6 +396,36 @@ When evidence is missing or unclear, LemonBeam reports uncertainty rather than g
 
 ---
 
+## User-Supplied OpenAI API Key (BYOK)
+
+### Decision
+
+LemonBeam requires the user to supply their own OpenAI API key with each scan request rather than using a shared server-side key.
+
+The backend uses the supplied key only in memory for that single request. It is never stored, logged, or returned in a response.
+
+### Reasons
+
+- LemonBeam does not want to bear inference cost for public, unauthenticated usage.
+- A shared server-side key has no natural per-user limit and could be exhausted or abused by anonymous traffic.
+- Avoiding key storage keeps the MVP free of the encryption-at-rest, rotation, and account-security work a stored-credential model would require.
+- Passing the key through per request keeps the existing "No User Accounts or Saved Scan History" decision intact — no key-management UI or database is needed.
+
+### Alternatives Considered
+
+- **Storing an encrypted key per user account** — rejected. It reintroduces the account and persistence scope explicitly excluded by "No User Accounts or Saved Scan History."
+- **Calling OpenAI directly from the frontend** — rejected. It contradicts the "frontend does not call GitHub or the LLM directly" architectural boundary and would remove server-side prompt construction and citation validation.
+
+### Consequences
+
+- The scan request body includes `openaiApiKey`. Exact request and error shapes belong in `API_CONTRACT.md`.
+- The frontend collects the key through a masked input and must not persist it beyond the active session.
+- The backend must never write the key to logs, SQLite, temporary files, or error responses.
+- A missing, malformed, or OpenAI-rejected key returns a specific error so the frontend can prompt the user to fix it, rather than a generic external-service failure.
+- A server-side `OPENAI_API_KEY` environment variable may remain as a local-development fallback but must not be relied on for hosted/production usage.
+
+---
+
 ## Markdown-Only Guide Output for the MVP
 
 ### Decision

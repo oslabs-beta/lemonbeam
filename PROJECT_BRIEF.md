@@ -264,7 +264,9 @@ The challenge is to provide enough evidence for a useful answer without turning 
 
 ### 1. Submit a Repository
 
-The user enters the URL of a supported public GitHub repository and submits it through the LemonBeam web application.
+The user enters the URL of a supported public GitHub repository and their own OpenAI API key, then submits both through the LemonBeam web application.
+
+LemonBeam is bring-your-own-key (BYOK): the user's key is used only for that scan and is not stored by LemonBeam.
 
 Example:
 
