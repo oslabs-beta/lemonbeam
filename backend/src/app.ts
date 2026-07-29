@@ -10,15 +10,37 @@ const app = express();
 app.use(express.json());
 
 // ---- ROUTES GO HERE, before the 404 and error handler ----
+// Controllers should set res.locals.status / res.locals.data
+// and call next() instead of sending a response directly.
 // app.use("/api/scan", scanRouter);
 
-app.get("/api/health", (_req: Request, res: Response) => {
-  res.status(200).json({ status: "ok" });
+app.get("/api/health", (_req: Request, res: Response, next: NextFunction) => {
+  res.locals.status = 200;
+  res.locals.data = { status: "ok" };
+  next();
 });
 
 // ---- 404 CATCH-ALL (must come after every real route) ----
-app.use((_req: Request, res: Response) => {
-  res.status(404).json({ error: "Not found" });
+// Only sets a 404 if no route above already set res.locals.status.
+// Always calls next() — never sends a response itself.
+app.use((_req: Request, res: Response, next: NextFunction) => {
+  if (res.locals.status === undefined) {
+    res.locals.status = 404;
+    res.locals.data = { error: "Not found" };
+  }
+  return next();
+});
+
+// ---- FINAL RESPONSE SENDER (must come after the 404 catch-all) ----
+// By now res.locals.status should always be set — by a real route,
+// or by the 404 handler above. If it's still missing, that's a bug
+// in some earlier middleware, so we pass it to the error handler
+// instead of guessing.
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (res.locals.status === undefined) {
+    return next(new Error(`No res.locals.status set for ${req.method} ${req.path}`));
+  }
+  res.status(res.locals.status).json(res.locals.data);
 });
 
 // ---- GLOBAL ERROR HANDLER (must be LAST, 4 params) ----
