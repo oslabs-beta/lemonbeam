@@ -11,6 +11,11 @@ type SourceLine = {
   endOffset: number;
 };
 
+type HeadingIndex = {
+    line: SourceLine; 
+    index: number; 
+}
+
 export function markdownChunker(input: ChunkInput): Chunk[] {
     
     const lines = splitSourceLines(input.content);
@@ -19,9 +24,26 @@ export function markdownChunker(input: ChunkInput): Chunk[] {
         return [];
     }
 
-    const headingIndexes = lines
-        .map((line, index) => ({ line, index }))
-        .filter(({ line }) => /^(#{1,6})\s+(.+)$/.test(line.text.trimEnd()));
+    const headingIndexes: HeadingIndex[] = []; 
+    let inCodeFence = false; 
+
+    lines.forEach((line, index) => {
+        const lineText = line.text.trimEnd();
+        const trimmedLine = lineText.trim(); 
+
+        if (/^(```|~~~)/.test(trimmedLine)) {
+            inCodeFence = !inCodeFence;
+            return;
+        }
+
+        if (inCodeFence) {
+            return;
+        }
+
+        if (/^(#{1,6})\s+(.+)$/.test(lineText)) {
+            headingIndexes.push({ line, index });
+        }
+    });
     
     if (headingIndexes.length === 0) {
         return [{
