@@ -37,7 +37,32 @@ export function markdownChunker(input: ChunkInput): Chunk[] {
         }];
     }
 
-    return headingIndexes.map((heading, index) => {
+    const chunks: Chunk[] = [];
+    
+    if (headingIndexes[0].index > 0) {
+        const startSourceLine = lines[0]; 
+        const endSourceLine = lines[headingIndexes[0].index -1]; 
+        const text = input.content.slice(
+            startSourceLine.startOffset,
+            endSourceLine.endOffset
+        );
+
+        if (text.trim().length > 0) {
+            chunks.push({
+                scanId: input.scanId,
+                filePath: input.filePath,
+                filePurpose: input.filePurpose,
+                language: input.language,
+                parser: "markdown",
+                chunkKind: "markdown_section", 
+                startLine: startSourceLine.lineNumber,
+                endLine: endSourceLine.lineNumber,
+                text,
+            });
+        }
+    }
+
+    const headingChunks: Chunk[] = headingIndexes.map((heading, index) => {
         const nextHeading = headingIndexes[index + 1]; 
         const startSourceLine = lines[heading.index]
         const endSourceLine = nextHeading 
@@ -65,6 +90,8 @@ export function markdownChunker(input: ChunkInput): Chunk[] {
         };
 
     });
+
+    return [...chunks, ...headingChunks];
 
 }
 
