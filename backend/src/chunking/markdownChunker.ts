@@ -40,7 +40,7 @@ export function markdownChunker(input: ChunkInput): Chunk[] {
             return;
         }
 
-        if (/^(#{1,6})\s+(.+)$/.test(lineText)) {
+        if (/^[ ]{0,3}(#{1,6})\s+(.+)$/.test(lineText)) {
             headingIndexes.push({ line, index });
         }
     });
@@ -94,7 +94,7 @@ export function markdownChunker(input: ChunkInput): Chunk[] {
             startSourceLine.startOffset,
             endSourceLine.endOffset
         );
-        const headingMatch = /^(#{1,6})\s+(.+)$/.exec(heading.line.text.trimEnd());
+        const headingMatch = /^[ ]{0,3}(#{1,6})\s+(.+)$/.exec(heading.line.text.trimEnd());
         const chunkName = headingMatch?.[2]?.replace(/\s+#+\s*$/, "").trim()
 
 
