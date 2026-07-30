@@ -16,7 +16,7 @@ type HeadingIndex = {
     index: number; 
 }
 
-export function markdownChunker(input: ChunkInput): Chunk[] {
+function markdownChunker(input: ChunkInput): Chunk[] {
     
     const lines = splitSourceLines(input.content);
 
@@ -162,3 +162,6 @@ function splitSourceLines(content: string): SourceLine[] {
 
     return lines;
 }
+
+
+export { markdownChunker };
