@@ -1,4 +1,12 @@
 {
+  "name": "lemonbeam",
+  "private": true,
+  "scripts": {
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev": "npm run dev:frontend",
+    "lint": "npm --prefix frontend run lint"
+  },
   "devDependencies": {
     "@types/node": "^26.1.2"
   }

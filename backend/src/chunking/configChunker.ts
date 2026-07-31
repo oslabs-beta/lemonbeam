@@ -1,6 +1,7 @@
 // Config/rule-based chunker.
-// This file will parse config files like package.json, tsconfig.json, and .env.example
-// to extract scripts, dependencies, compiler options, and environment variables.
+
+// Extracts high-signal info from common config files (package.json, tsconfig*.json, eslint/prettier configs).
+ // JS/TS configs and .env* files are currently indexed as bounded raw text rather than being parsed into fields.
 
 // Design goal: extract SIGNAL, not a mirror of the file. A repo with 300
 // dependencies or a 2000-line webpack config shouldn't flood the index
