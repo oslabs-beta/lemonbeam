@@ -42,16 +42,29 @@ const TYPE_TO_KIND_LOOKUP: Record <string, ChunkKind> = {
 }
 
 // Builds a single Chunk object from a matched node + its resolved kind.
+// chunkName is optional: when omitted, falls back to the node's own "name"
+// field (works for declarations like functions/classes). Callers that
+// resolve a name a different way (e.g. a string-literal call argument)
+// can pass one in directly.
 function buildChunk(
   node: Parser.SyntaxNode, 
   chunkKind: ChunkKind,
   input: ChunkInput,
+  chunkName?: string,
 ): Chunk {
-// Tree-sitter grammars only define a "name" field for node types that
-// actually name themselves (functions, classes, interfaces...). Nodes
-// without one fall back to "(unknown)".
-  const nameNode = node.childForFieldName("name");
 
+let resolvedName: string;
+
+  if (chunkName !== undefined) {
+    resolvedName = chunkName;
+  } else {
+    const nameNode = node.childForFieldName("name");
+    if (nameNode !== null) {
+    resolvedName = nameNode.text;
+    } else {
+    resolvedName = "(unknown)";
+    }
+  }
   return {
     scanId: input.scanId,
     filePath: input.filePath,
@@ -59,7 +72,7 @@ function buildChunk(
     language: input.language,
     parser: "tree-sitter",
     chunkKind,
-    chunkName: nameNode ? nameNode.text : "(unknown)",
+    chunkName: resolvedName,
     startLine: node.startPosition.row + 1,
     endLine: node.endPosition.row + 1,
     startColumn: node.startPosition.column,
@@ -123,4 +136,4 @@ function walk(node: Parser.SyntaxNode, chunks: Chunk[], input: ChunkInput) {
   }
 }
 
-export { chunkWithTreeSitter };
+export { chunkWithTreeSitter, buildChunk };
