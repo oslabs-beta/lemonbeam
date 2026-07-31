@@ -95,7 +95,7 @@ function markdownChunker(input: ChunkInput): Chunk[] {
             endSourceLine.endOffset
         );
         const headingMatch = /^[ ]{0,3}(#{1,6})\s+(.+)$/.exec(heading.line.text.trimEnd());
-        const chunkName = headingMatch?.[2]?.replace(/\s+#+\s*$/, "").trim()
+        const chunkName = headingMatch?.[2]?.replace(/\s+#+\s*$/, "")?.trim();
 
 
         return {
