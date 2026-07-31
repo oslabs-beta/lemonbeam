@@ -29,9 +29,9 @@ function markdownChunker(input: ChunkInput): Chunk[] {
 
     lines.forEach((line, index) => {
         const lineText = line.text.trimEnd();
-        const trimmedLine = lineText.trim(); 
 
-        if (/^(```|~~~)/.test(trimmedLine)) {
+        // Fenced code blocks are only recognized with up to 3 leading spaces.
+        if (/^[ ]{0,3}(```|~~~)/.test(lineText)) {
             inCodeFence = !inCodeFence;
             return;
         }
