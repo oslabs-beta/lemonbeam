@@ -1,79 +1,33 @@
-import fs from "node:fs";
+// Tree-sitter chunking stratety described in ARCHITECTURE.md
+// The chunkFile() function below is this file's only public entry point
+// it's what the chunking router (chunkFile.ts) will call for source, script,
+// and type files. Test-specific extraction is a separate strategy.
+
 import Parser from "tree-sitter";
 import TypeScriptPackage from "tree-sitter-typescript";
 import JavaScriptGrammar from "tree-sitter-javascript";
+import type { Chunk, ChunkKind, ChunkInput } from "../types/chunk.js";
 
+// tree-sitter-typescript bundles two grammars under one import (.typescript
+// and .tsx); LemonBeam only parses plain TypeScript, not TSX.
 const TypeScript = TypeScriptPackage.typescript
 
-const filePath = "src/utils.ts";
-const source = fs.readFileSync(filePath, "utf8");
-const language = "typescript";
+// Entry point: parses the whole tree and returns every chunk found in this file.
+function chunkWithTreeSitter(input: ChunkInput): Chunk[] {
+  const parser = new Parser();
 
-const parser = new Parser();
+  // Pick the grammar based on language before parsing.
+  if (input.language === "typescript") {
+    parser.setLanguage(TypeScript);
+  } else if (input.language === "javascript") {
+    parser.setLanguage(JavaScriptGrammar);
+  }
 
-// Pick the grammar based on language before parsing.
-if (language === "typescript") {
-  parser.setLanguage(TypeScript);
-} else if (language === "javascript") {
-  parser.setLanguage(JavaScriptGrammar);
-}
+  const tree = parser.parse(input.content);
 
-const tree = parser.parse(source);
-
-// console.log(tree)
-
-type FilePurpose =
-  | "source"
-  | "test"
-  | "docs"
-  | "config"
-  | "scripts"
-  | "types"
-  | "unknown"
-
-type Language =
-  | "typescript"
-  | "javascript"
-  | "markdown"
-  | "json"
-  | "text"
-  | "unknown"
-
-  // Every kind of code construct we know how to chunk.
-type ChunkKind =
-  | "function"
-  | "class"
-  | "method"
-  | "constructor"
-  | "arrow_function"
-  | "type"
-  | "interface"
-  | "enum"
-  | "test_suite"
-  | "test_case"
-  | "test_hook"
-  | "markdown_section"
-  | "package_scripts"
-  | "dependencies"
-  | "compiler_options"
-  | "tool_config"
-  | "text_block"
-  | "unknown"
-
-type Chunk = {
-  scanId: string
-  filePath: string
-  filePurpose: FilePurpose
-  language: Language
-  parser: "tree-sitter" | "markdown" | "config" | "fallback"
-  chunkKind: ChunkKind
-  chunkName?: string
-  parentName?: string
-  startLine?: number
-  endLine?: number
-  startColumn?: number
-  endColumn?: number
-  text: string
+  const chunks: Chunk[] = [];
+  walk(tree.rootNode, chunks, input);
+  return chunks;
 }
 
 // Maps a tree-sitter node type to the ChunkKind label we want to store.
@@ -90,15 +44,19 @@ const TYPE_TO_KIND_LOOKUP: Record <string, ChunkKind> = {
 // Builds a single Chunk object from a matched node + its resolved kind.
 function buildChunk(
   node: Parser.SyntaxNode, 
-  chunkKind: ChunkKind
+  chunkKind: ChunkKind,
+  input: ChunkInput,
 ): Chunk {
+// Tree-sitter grammars only define a "name" field for node types that
+// actually name themselves (functions, classes, interfaces...). Nodes
+// without one fall back to "(unknown)".
   const nameNode = node.childForFieldName("name");
 
   return {
-    scanId: "test-scan",
-    filePath,
-    filePurpose: "source",
-    language,
+    scanId: input.scanId,
+    filePath: input.filePath,
+    filePurpose: input.filePurpose,
+    language: input.language,
     parser: "tree-sitter",
     chunkKind,
     chunkName: nameNode ? nameNode.text : "(unknown)",
@@ -106,17 +64,17 @@ function buildChunk(
     endLine: node.endPosition.row + 1,
     startColumn: node.startPosition.column,
     endColumn: node.endPosition.column,
-    text: source.slice(node.startIndex, node.endIndex),
+    text: input.content.slice(node.startIndex, node.endIndex),
   }
 }
 
 // Recursively visits every node in the syntax tree, one level at a time.
-function walk(node: Parser.SyntaxNode, chunks: Chunk[]) {
+function walk(node: Parser.SyntaxNode, chunks: Chunk[], input: ChunkInput) {
   // Table lookup: does this node's type map to a ChunkKind?
   let chunkKind = TYPE_TO_KIND_LOOKUP[node.type];
 
   if (chunkKind) {
-    const chunk = buildChunk(node, chunkKind);
+    const chunk = buildChunk(node, chunkKind, input);
 
     // Constructors are method_definition nodes named "constructor" —
     // relabel them so they get their own distinct chunkKind.
@@ -138,10 +96,10 @@ function walk(node: Parser.SyntaxNode, chunks: Chunk[]) {
       const nameNode = declarator.childForFieldName("name");
 
       chunks.push({
-        scanId: "test-scan",
-        filePath,
-        filePurpose: "source",
-        language,
+        scanId: input.scanId,
+        filePath: input.filePath,
+        filePurpose: input.filePurpose,
+        language: input.language,
         parser: "tree-sitter",
         chunkKind: "arrow_function",
         chunkName: nameNode ? nameNode.text : "(unknown)",
@@ -149,7 +107,7 @@ function walk(node: Parser.SyntaxNode, chunks: Chunk[]) {
         endLine: node.endPosition.row + 1,
         startColumn: node.startPosition.column,
         endColumn: node.endPosition.column,
-        text: source.slice(node.startIndex, node.endIndex),
+        text: input.content.slice(node.startIndex, node.endIndex),
       });
     }
   }
@@ -161,18 +119,8 @@ function walk(node: Parser.SyntaxNode, chunks: Chunk[]) {
 
   // Recurse into every child, regardless of whether this node matched anything above.
   for (const child of node.namedChildren) {
-    walk(child, chunks);
+    walk(child, chunks, input);
   }
 }
 
-// Entry point: parses the whole tree and returns every chunk found in this file.
-function chunkFile(): Chunk[] {
-  const chunks: Chunk[] = [];
-  walk(tree.rootNode, chunks);
-  return chunks;
-}
-
-const output = chunkFile();
-console.log(JSON.stringify(output, null, 2));
-
-export {}
+export { chunkWithTreeSitter };
