@@ -1,6 +1,9 @@
 {
   "name": "lemonbeam",
   "private": true,
+  "engines": {
+    "node": "^22.13.0 || >=24"
+  },
   "scripts": {
     "dev:frontend": "npm --prefix frontend run dev",
     "dev:backend": "npm --prefix backend run dev",
