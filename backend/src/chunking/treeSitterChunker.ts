@@ -102,7 +102,7 @@ function walk(node: Parser.SyntaxNode, chunks: Chunk[], input: ChunkInput) {
   // we have to look inside the declaration to see if it's wrapping an arrow function.
   if (node.type === "lexical_declaration") {
     const declarator = node.namedChildren[0];
-    const valueNode = declarator.childForFieldName("value");
+    const valueNode = declarator?.childForFieldName("value");
 
     if (valueNode && valueNode.type === "arrow_function") {
       const nameNode = declarator.childForFieldName("name");
