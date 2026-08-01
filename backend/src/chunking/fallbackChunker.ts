@@ -22,6 +22,15 @@ function fallbackChunker(input: ChunkInput): Chunk[] {
     const lines = splitSourceLines(input.content);
     const chunks: Chunk[] = []; 
 
+    let blockStartLine: SourceLine | undefined; 
+    let blockEndLine: SourceLine | undefined;
+    
+    for (const line of lines) {
+        if (line.text.trim().length === 0) {
+            
+        }
+    }
+
     
     return chunks; 
 }
