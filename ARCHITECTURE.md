@@ -120,8 +120,8 @@ The Express backend is the entry point for the scanning workflow.
 It:
 
 - receives scan requests from the frontend, including the user-supplied OpenAI API key
+- generates a unique scan ID and creates that scan's isolated temporary workspace (via `utils/tempDirectory.ts`) immediately after request validation succeeds, before contacting GitHub
 - coordinates validation and repository download
-- creates the isolated workspace for the scan
 - runs repository discovery, classification, parsing, and chunking
 - stores chunks and metadata in SQLite
 - starts guide generation, passing the user-supplied API key to the LLM provider for that request only
@@ -375,7 +375,7 @@ Missing or unclear information should be returned as uncertainty instead of bein
 
 The Uncertainties and Missing Information section is not produced through another independent LLM call.
 
-Each primary section task may return uncertainty information. `generateGuide.ts` collects those uncertainty items and assembles them into the final section.
+Each primary section task may return uncertainty information. `generateGuide.ts` collects those uncertainty items, along with the list of files skipped earlier during discovery, classification, or chunking (see `DECISIONS.md` > "Skipped Files Are Not Fatal, and Are Reported"), and assembles them into the final section.
 
 The exact guide-section wording and ordering belong in `PROJECT_BRIEF.md`.
 
@@ -406,6 +406,8 @@ The backend uses the GitHub integration to validate the repository and identify 
 ### 3. Create an Isolated Scan Workspace
 
 The backend creates a unique workspace for the scan. The downloaded repository, temporary database, and intermediate files belong only to that scan.
+
+`routes/scans.ts` generates the scan ID and calls `utils/tempDirectory.ts` to create this workspace right after request validation succeeds, before any GitHub request is made.
 
 ### 4. Download the Exact Repository Snapshot
 

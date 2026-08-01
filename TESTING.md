@@ -270,6 +270,8 @@ Test that low-confidence files remain `unknown`.
 
 Test each strategy separately.
 
+Also test the scan-level resilience behavior: when a chunker fails on one file, `scanService.ts` skips that file, continues scanning the rest of the repository, and records the file path and reason so it can be reported in the final Uncertainties section (see `DECISIONS.md` > "Skipped Files Are Not Fatal, and Are Reported"). A single bad file must not abort the scan.
+
 #### Tree-sitter
 
 Verify extraction of supported structures such as:
@@ -354,9 +356,7 @@ Test that LemonBeam:
 - preserves the fixed section order
 - collects citations and uncertainties
 - assembles the sixth uncertainty section without another LLM call
-- handles one failed section task predictably
-
-The team must decide the expected behavior when one section task fails before implementing that test case.
+- handles one failed section task by returning the remaining sections normally and reporting the failed section as an uncertainty, not by failing the whole guide (see `DECISIONS.md` > "Skipped Files Are Not Fatal, and Are Reported")
 
 ### Citations
 
@@ -594,7 +594,6 @@ The team still needs to finalize:
 - whether to use a browser end-to-end tool
 - the final test-directory layout
 - canonical test and coverage commands
-- whether failed section generation stops the whole guide or produces a partial result
 - whether guide evaluation uses pass/fail results, numeric scores, or both
 
 Once the team makes these decisions, update this document and record major reasoning in `DECISIONS.md`.

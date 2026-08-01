@@ -186,6 +186,32 @@ Tree-sitter is one parsing method, not the universal parser for every file.
 
 ---
 
+## Skipped Files Are Not Fatal, and Are Reported
+
+### Decision
+
+If a file fails during discovery, classification, or chunking — for example, a chunker cannot parse a malformed config file — LemonBeam skips that file and continues scanning the rest of the repository. One bad file does not abort the scan.
+
+Skipped files are not silently dropped. `scanService.ts` records the file path and the reason it was skipped. `generateGuide.ts` includes that list in the final Uncertainties and Missing Information section, alongside the uncertainty information returned by the five section-generation tasks.
+
+The same principle applies one level up: if a primary guide section cannot be generated (for example, a section task fails or has no usable evidence), LemonBeam still returns the guide with the remaining sections and reports the missing section as an uncertainty, rather than failing the whole guide.
+
+### Reasons
+
+- A single malformed or unusual file should not prevent a contributor from receiving a guide for the rest of an otherwise-analyzable repository.
+- Silently dropping a file or a section without any record would contradict LemonBeam's own trust goal: users need to know when a guide is based on incomplete evidence rather than assume it is complete.
+- The Uncertainties and Missing Information section already exists to hold "information LemonBeam could not confidently determine," making it the natural place to surface both kinds of gaps.
+
+### Consequences
+
+- `scanService.ts` (or whichever file coordinates chunking) must track skipped files and reasons during a scan, not just the chunks that were successfully produced.
+- `generateGuide.ts` must merge the skipped-file list into the Uncertainties section in addition to each section task's own uncertainty results.
+- A section task failing outright is treated the same way as a missing citation or unclear evidence: reported as an uncertainty, not a fatal error.
+- Reliably keeping a skipped-file list across a whole scan is one more reason to weigh SQLite storage against in-memory-only chunk handling; this remains open until the team resolves that scope question separately.
+- The exact data shape for a skipped-file record (path, reason, pipeline stage) is left to whoever implements `scanService.ts`.
+
+---
+
 ## File Classification Before Chunking
 
 ### Decision
