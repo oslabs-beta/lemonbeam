@@ -47,7 +47,7 @@ function fallbackChunker(input: ChunkInput): Chunk[] {
                 blockEndLine = undefined; 
             }
 
-            continue
+            continue;
         }
 
         blockStartLine ??= line; 
