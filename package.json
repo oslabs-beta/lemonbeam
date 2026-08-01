@@ -1,13 +1,17 @@
 {
   "name": "lemonbeam",
   "private": true,
+  "engines": {
+    "node": "^22.13.0 || >=24"
+  },
   "scripts": {
     "dev:frontend": "npm --prefix frontend run dev",
     "dev:backend": "npm --prefix backend run dev",
-    "dev": "npm run dev:frontend",
+    "dev": "concurrently -k -n frontend,backend -c cyan,magenta \"npm run dev:frontend\" \"npm run dev:backend\"",
     "lint": "npm --prefix frontend run lint"
   },
   "devDependencies": {
-    "@types/node": "^26.1.2"
+    "@types/node": "^26.1.2",
+    "concurrently": "^10.0.4"
   }
 }
