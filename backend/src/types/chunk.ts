@@ -80,13 +80,13 @@ type ChunkInput = {
 };
 
 export type {
-    FilePurpose,
-    Parser,
-    Language,
-    ChunkKind,
-    Chunk,
-    ChunkInput
-}
+  FilePurpose,
+  Parser,
+  Language,
+  ChunkKind,
+  Chunk,
+  ChunkInput,
+};
 
 /*
   Chunk Object Property Guide
