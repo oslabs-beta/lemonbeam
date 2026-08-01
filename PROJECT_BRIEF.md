@@ -91,7 +91,7 @@ For the same repository version and the same classification and retrieval rules,
 
 The completed guide contains six displayed sections.
 
-The first five sections are generated through five separate tasks and five separate LLM calls.
+For the MVP, the first five sections are generated through one combined task and one LLM call, using a single general prompt built from evidence gathered across all five sections. Generating each section through its own separate task and prompt is a stretch goal (see "Five Separate Section-Generation Tasks" below), planned for after the MVP works end to end.
 
 ### 1. Project Overview
 
@@ -162,7 +162,7 @@ Examples may include:
 - missing test commands
 - ambiguous entry points
 
-This section is assembled from uncertainty information returned by the five primary section tasks. It does not require a sixth LLM call.
+For the MVP, this section is assembled from the files skipped during scanning and chunking (see `DECISIONS.md` > "Skipped Files Are Not Fatal, and Are Reported"). It does not require a separate LLM call. Once the five-separate-task stretch goal is built, this section will also incorporate uncertainty information returned by each of the five tasks, as originally designed.
 
 Citations appear within the relevant generated sections and are not counted as a separate displayed section.
 
@@ -178,8 +178,7 @@ Citations appear within the relevant generated sections and are not counted as a
 - Repositories within defined size limits
 - Markdown guide output
 - Source citations within generated sections
-- Five primary section-generation tasks
-- One LLM call per primary generated section
+- One combined generation task and one LLM call for the MVP, producing all five primary sections from a single general prompt
 - Programmatically assembled uncertainties section
 - Tree-sitter as one parsing method for supported JavaScript and TypeScript files
 - Markdown, configuration, heuristic, regex, and fallback strategies where appropriate
@@ -308,7 +307,7 @@ It then:
 
 ### 4. Retrieve Evidence and Generate the Primary Sections
 
-LemonBeam creates one generation task for each primary guide section:
+For the MVP, LemonBeam creates one combined generation task covering all five primary guide sections:
 
 - Project Overview
 - Setup / Installation
@@ -316,15 +315,15 @@ LemonBeam creates one generation task for each primary guide section:
 - Project Structure
 - Testing
 
-Each task:
+That task:
 
-1. retrieves only the evidence relevant to its section
-2. builds or selects the matching section prompt
-3. sends the prompt and selected evidence to the LLM
-4. receives section text, citations, and uncertainty information
+1. retrieves the evidence relevant to all five sections
+2. builds the single general MVP prompt
+3. sends the prompt and selected evidence to the LLM in one call
+4. receives the combined guide text, citations, and any uncertainty information
 5. validates the returned citations
 
-Each task makes one LLM call.
+Generating each section through its own separate task, retrieval pass, and LLM call is a stretch goal, planned once the MVP works end to end (see "Five Separate Section-Generation Tasks" under Stretch Goals).
 
 ### 5. Assemble the Guide
 
@@ -375,8 +374,8 @@ Submit public GitHub URL
 -> discover and classify files
 -> parse and chunk files
 -> store evidence in a temporary SQLite database
--> retrieve evidence for five primary sections
--> make five section-specific LLM calls
+-> retrieve evidence for all five primary sections
+-> make one combined LLM call (five separate section-specific calls is a stretch goal)
 -> validate citations
 -> assemble five generated sections plus uncertainties
 -> return the Markdown guide
@@ -436,6 +435,14 @@ Detailed testing procedures, tools, test organization, and evaluation implementa
 ## Stretch Goals
 
 The following features are outside the MVP and may be considered after the MVP works end to end.
+
+### Five Separate Section-Generation Tasks
+
+Replace the MVP's single combined generation task with five independent tasks — one for each primary guide section — each with its own retrieval pass, its own tuned prompt, and its own LLM call, as originally designed. Run the five calls in parallel (not sequentially) so one failed section does not block the others. This restores per-section citation precision and lets each section be tested and improved independently, at the cost of five prompts to write and tune instead of one.
+
+### Asynchronous Scan Processing
+
+Replace the single blocking `POST /api/scans` request with an asynchronous flow: the endpoint starts the scan and returns immediately with a scan ID, a new status mechanism (polling endpoint or server-sent events) reports progress, and the frontend displays progress until the guide is ready. This removes the request-timeout ceiling that constrains the MVP's repository size limits (see `DECISIONS.md` > "Repository Size Limits for the MVP"); it is a prerequisite for raising those limits, not vector-based retrieval.
 
 ### Vector-Based Retrieval
 

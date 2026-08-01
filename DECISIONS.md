@@ -124,6 +124,28 @@ The MVP supports single-package repositories and does not support monorepos.
 
 ---
 
+## Repository Size Limits for the MVP
+
+### Decision
+
+The MVP scan endpoint rejects repositories larger than approximately 25–50MB (measured after ignore rules exclude directories such as `node_modules`, `.git`, and build output) and skips individual files larger than approximately 1MB.
+
+These numbers are a starting point for the MVP, not a permanent ceiling, and may be adjusted once the team has run real repositories through the pipeline.
+
+### Reasons
+
+- Every stage of the analyzer pipeline (download, discovery, classification, chunking, storage) scales roughly linearly with repository size; keeping the MVP's range small keeps these stages fast and predictable.
+- `POST /api/scans` is a single synchronous request that blocks until the whole guide is returned (see "Single Scan Endpoint"). A large repository risks the request exceeding whatever timeout the hosting platform enforces, which is a harder failure mode than a slow-but-successful scan.
+- Oversized individual files (bundled/minified output, generated code, large data files) are rarely useful evidence for a contributor guide, so skipping them loses little.
+
+### Consequences
+
+- `REPOSITORY_TOO_LARGE` (413) in `API_CONTRACT.md` now has concrete numbers behind it.
+- The exact hosting platform for LemonBeam, and its request timeout, has not yet been decided; the size limits above should be revisited once that is known, since the platform's timeout is the real ceiling this range is trying to stay under.
+- Supporting larger repositories later depends primarily on moving off a single blocking request (see `PROJECT_BRIEF.md` > "Asynchronous Scan Processing"), not on adopting vector-based retrieval — vector retrieval helps keep per-section evidence smaller and cheaper, but is a separate, optional improvement.
+
+---
+
 ## Default Branch and Exact Commit Identification
 
 ### Decision
@@ -327,33 +349,27 @@ The MVP does not include user accounts or persistent scan history.
 
 ---
 
-## Five Primary Tasks and Five LLM Calls
+## One Combined Generation Call for the MVP, Five Tasks as a Stretch Goal
 
 ### Decision
 
-LemonBeam generates five primary guide sections through five independent generation tasks and five LLM calls.
+The MVP generates the guide's five primary sections — Project Overview, Setup / Installation, Running Locally, Project Structure, and Testing — through **one combined generation task and one LLM call**, built from a single general prompt and evidence gathered across all five sections.
 
-The sections are:
-
-1. Project Overview
-2. Setup / Installation
-3. Running Locally
-4. Project Structure
-5. Testing
+Splitting this into five independent tasks, each with its own retrieval pass, its own tuned prompt, and its own LLM call, is a stretch goal (see `PROJECT_BRIEF.md` > "Five Separate Section-Generation Tasks"), not an MVP requirement.
 
 ### Reasons
 
-- Each section needs different evidence and a different prompt focus.
-- Bounded tasks are easier to test and debug than one large generation request.
-- One weak retrieval result should not derail the entire guide.
-- Five sections cover the core contributor-onboarding needs while controlling cost and complexity.
+- The team has a fixed ten-day window to reach a working end-to-end MVP, followed by a longer polish period. Five separately tuned prompts and five retrieval passes were judged too much to build and test reliably in that window.
+- This does not change the frontend/backend API contract — `POST /api/scans` still returns one `guide.markdown` string regardless of how many LLM calls produced it internally.
+- Getting one working generation path end to end first is more valuable right now than five partially-tested ones.
 
 ### Consequences
 
-- Each task performs section-specific retrieval.
-- Each task uses its matching prompt.
-- Each task returns section text, citations, and uncertainty information.
-- The orchestration layer combines the completed results.
+- Retrieval must still gather evidence across all five topic areas before the one call, even though it is handed to a single prompt instead of five.
+- A single call bundling every section's evidence is one point of latency/cost risk rather than five smaller ones; there is no longer anything to run in parallel for the MVP call.
+- If the one MVP call fails (rate limit, malformed output, OpenAI error), the whole guide generation fails for that scan — there is no partial-success case at the section level the way five independent tasks would allow. This is returned to the frontend using the existing `LLM_SERVICE_ERROR` / `EXTERNAL_SERVICE_ERROR` codes already defined in `API_CONTRACT.md`; no new error code or retry mechanism is required for the MVP.
+- Debugging or tuning the single prompt is expected to be harder than tuning five narrow ones, since a change intended to fix one section's output can affect how the others read. This tradeoff was made knowingly to fit the MVP timeline.
+- When the five-task stretch goal is built, each task should run **in parallel** (e.g. via `Promise.allSettled`, not `Promise.all`) rather than sequentially, so one failed section does not cancel the other four — consistent with "Skipped Files Are Not Fatal, and Are Reported."
 
 ---
 
@@ -361,42 +377,40 @@ The sections are:
 
 ### Decision
 
-The sixth displayed section, **Uncertainties and Missing Information**, is assembled from uncertainty information returned by the five primary section tasks.
+The sixth displayed section, **Uncertainties and Missing Information**, is assembled without an extra LLM call.
 
-It does not use a sixth LLM call.
+For the MVP (one combined generation call), it is built from the list of files skipped during discovery, classification, or chunking (see "Skipped Files Are Not Fatal, and Are Reported").
+
+Once the five-separate-task stretch goal is built, this section will also incorporate uncertainty information returned by each of the five tasks, as originally designed.
 
 ### Reasons
 
-- The primary tasks are already responsible for identifying evidence gaps.
-- Aggregating their uncertainty results preserves those reports directly.
+- The scanning stage is already responsible for identifying evidence gaps (skipped files) regardless of how many generation calls are made.
+- Aggregating that list programmatically, rather than asking the model to self-report uncertainty inside a single combined response, keeps this section reliable without adding complexity to the MVP's one prompt.
 - Another LLM call would add cost without being necessary.
-- Programmatic assembly makes the origin of uncertainty items clearer.
 
 ### Consequences
 
-- The completed guide contains six displayed sections.
-- Only five sections are LLM-generated.
+- The completed guide contains six displayed sections; for the MVP, five come from one combined LLM call and the sixth is assembled programmatically from skipped-file data.
 - Uncertainty output should not be silently rewritten into unsupported conclusions.
 
 ---
 
-## Section-Specific Prompts with a Shared Result Shape
+## Section-Specific Prompts (Stretch Goal)
 
 ### Decision
 
-Each primary guide task uses a section-specific prompt, while all tasks return results in a consistent shape.
+The MVP uses one general prompt for all five primary sections. Giving each section its own tuned prompt, while keeping a shared result shape across tasks, is part of the "Five Separate Section-Generation Tasks" stretch goal rather than an MVP requirement.
 
 ### Reasons
 
-- Each section asks different questions of the repository evidence.
-- A common result shape allows the orchestration code to handle every task consistently.
-- Shared citation and uncertainty fields simplify validation and assembly.
+- Each section ultimately asks a different question of the repository evidence, and a section-specific prompt should produce more precise, better-cited output than one general prompt covering all five — but writing and tuning five prompts was judged too much for the MVP's ten-day window.
 
 ### Consequences
 
-- Prompt wording differs by section.
-- The orchestration flow can process each section result through the same shared steps.
-- The exact prompt text belongs in the prompt source files, not in project documentation.
+- MVP prompt wording lives in one new file in `prompts/`, not five.
+- When the stretch goal is built, prompt wording will differ by section, and the orchestration flow will process each section's result through a shared shape, as originally designed.
+- The exact prompt text belongs in the prompt source files, not in project documentation, for both the MVP and the stretch-goal versions.
 
 ---
 
@@ -496,6 +510,30 @@ to submit a repository URL and receive the completed guide.
 
 - Exact request, response, status, and error formats belong in `API_CONTRACT.md`.
 - Additional endpoints should be added only when a new product requirement requires them.
+
+---
+
+## Thin Routes; `pipelineManager.ts` Sequences the Scan
+
+### Decision
+
+`routes/scans.ts` stays thin: it validates the incoming request and calls one function, in `backend/src/pipelineManager.ts`, then turns that function's result (or error) into the HTTP response defined in `API_CONTRACT.md`.
+
+`pipelineManager.ts` is the file responsible for sequencing an entire scan: GitHub validation, snapshot download, repository analysis (`scanService.ts`), guide generation, and cleanup, in that order. It wraps this sequence in a try/finally so cleanup always runs, whether the scan succeeds or fails at any step.
+
+`pipelineManager.ts` lives at `backend/src/`, alongside `app.ts` and `server.ts`, rather than inside `routes/`, `scan/`, `github/`, or `orchestration/`, because its job is to call across all of them rather than belong to any one.
+
+### Reasons
+
+- `CONTRIBUTING.md` and `ARCHITECTURE.md` already say routes receive and return HTTP data and do not analyze repositories; putting the full sequencing logic inside `routes/scans.ts` would violate that.
+- Putting it inside `scanService.ts` instead would blur that file's already-documented scope (discover, classify, chunk) with unrelated concerns (GitHub access, guide generation, cleanup).
+- A single, clearly-named coordinating file makes it obvious where "the whole scan, start to finish" is defined, rather than leaving that sequencing implicit or scattered across routes and services.
+
+### Consequences
+
+- `routes/scans.ts` contains no GitHub, analysis, or generation logic — only request validation and response formatting.
+- Cleanup is guaranteed by `pipelineManager.ts`'s try/finally, not by any individual step remembering to clean up after itself.
+- The `backend/` directory structure in `ARCHITECTURE.md` includes `pipelineManager.ts` as a new top-level file.
 
 ---
 

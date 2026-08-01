@@ -168,6 +168,7 @@ Follow the repository architecture and keep logic in the appropriate area.
 Examples:
 
 - Express route handling belongs in `routes/`.
+- Sequencing the whole scan (GitHub, analysis, generation, cleanup, in order) belongs in `pipelineManager.ts`, not in `routes/`.
 - GitHub communication belongs in `github/`.
 - Repository discovery and classification belong in `scan/`.
 - Parsing and chunking belong in `chunking/`.

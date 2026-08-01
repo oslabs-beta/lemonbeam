@@ -128,7 +128,7 @@ It:
 - returns the completed guide
 - performs cleanup after success or failure
 
-The backend should keep request handling separate from the repository-analysis and guide-generation logic.
+`routes/scans.ts` itself stays thin: it validates the request and calls `pipelineManager.ts`, then turns the result into the HTTP response. `pipelineManager.ts` is the file that actually sequences everything above — scan-ID/workspace creation, GitHub validation and download, repository analysis, guide generation, and cleanup — wrapped in a try/finally so cleanup always runs, even if an earlier step fails (see `DECISIONS.md` > "Thin Routes; `pipelineManager.ts` Sequences the Scan").
 
 The API key is held in memory for the lifetime of the request only. It is never written to SQLite, logs, temporary files, or error responses.
 
@@ -265,18 +265,32 @@ A separate retrieval layer should not be added to this document unless the team 
 
 ### Guide Orchestration
 
-LemonBeam creates one generation task and one LLM call for each primary generated guide section.
+For the MVP, LemonBeam creates **one combined generation task and one LLM call** that produces all five primary guide sections at once, from a single general prompt built with evidence gathered across all five sections.
+
+Splitting this into one generation task and one LLM call **per** primary section is a stretch goal (see `PROJECT_BRIEF.md` > "Five Separate Section-Generation Tasks" and `DECISIONS.md` > "One Combined Generation Call for the MVP, Five Tasks as a Stretch Goal").
 
 The exact guide format belongs in `PROJECT_BRIEF.md`.
 
-The orchestration flow is:
+The MVP orchestration flow is:
+
+```text
+Retrieve evidence across all five primary sections
+-> build the single general MVP prompt
+-> make one LLM call
+-> return combined guide text, citations, and any uncertainties
+-> validate citations
+-> assemble the sixth Uncertainties section from skipped files
+-> return the final guide
+```
+
+The stretch-goal orchestration flow (one task per section) is:
 
 ```text
 Load the section definitions
 -> start one task for each primary section
 -> retrieve evidence for that section
 -> build the matching fixed prompt
--> make one LLM call
+-> make one LLM call per section, in parallel
 -> return section text, citations, and uncertainties
 -> validate citations
 -> sort and combine completed sections
@@ -293,35 +307,41 @@ orchestration/
 └── generateGuide.ts
 ```
 
+For the MVP, these files still divide the same responsibilities — retrieval, prompt building, the LLM call, citation validation, and assembly — just for one combined task instead of five.
+
 #### `guideSections.ts`
 
-Defines the primary guide sections LemonBeam generates and connects each section to its position and prompt behavior.
+Defines the primary guide section(s) LemonBeam generates and connects each to its position and prompt behavior. For the MVP, this describes one combined task producing all five sections; the stretch goal restores five independently defined sections.
 
 #### `generateGuideSection.ts`
 
-Runs the shared process for one section:
+Runs the shared generation process:
 
 1. retrieve relevant chunks from SQLite
 2. use the matching prompt builder
 3. send the selected evidence and prompt to the LLM
-4. receive the section text, citations, and uncertainties
+4. receive the resulting text, citations, and uncertainties
 5. validate the returned citations
-6. return the section result
+6. return the result
+
+For the MVP this runs once, for the combined task. In the stretch goal, it runs once per section, in parallel.
 
 #### `generateGuide.ts`
 
 Coordinates the complete guide:
 
-1. reads the section definitions
-2. starts each section-generation task
-3. waits for the results
+1. reads the section definition(s)
+2. starts the generation task(s)
+3. waits for the result(s)
 4. sorts the sections into the fixed order
 5. combines them into the final guide
-6. collects uncertainties into the final uncertainty section
+6. assembles the Uncertainties section from skipped-file data (and, once the stretch goal is built, from each task's own uncertainty results too)
 
 ### Prompt Builders
 
-Each primary generated section has its own prompt builder:
+For the MVP, one general prompt file, `prompts/mvpGuidePrompt.ts`, covers all five primary sections.
+
+The stretch goal restores one prompt builder per section:
 
 ```text
 prompts/
@@ -332,7 +352,7 @@ prompts/
 └── testingPrompt.ts
 ```
 
-Prompt builders define what a section should explain and how the model should use the supplied evidence.
+Prompt builders define what the guide should explain and how the model should use the supplied evidence.
 
 They should not retrieve files or directly access the repository. Their input is the evidence selected by the guide-generation flow.
 
@@ -395,6 +415,8 @@ The team is adding a `utils/` area for shared helper behavior. Exact filenames s
 
 ## End-to-End Scan Lifecycle
 
+Steps 2 through 12 below are sequenced by `pipelineManager.ts`, wrapped in a try/finally so step 12 (cleanup) always runs. `routes/scans.ts` only receives the request (step 1) and sends the response `pipelineManager.ts` returns (step 11).
+
 ### 1. Submit
 
 The user submits a public GitHub repository URL through the frontend.
@@ -447,14 +469,16 @@ The repository snapshot, temporary database, and intermediate files are deleted.
 
 ## Backend Directory Structure
 
-The agreed backend structure is shown below. The `github/` and `utils/` areas are included at the folder level because the team has agreed to add them, but their internal filenames have not yet been finalized.
+The agreed backend structure is shown below. The `github/` and `utils/` areas are included at the folder level because the team has agreed to add them, but their internal filenames have not yet been finalized. `pipelineManager.ts` is a new top-level file (not a folder) that sequences an entire scan; see "Express Backend" below and `DECISIONS.md` > "Thin Routes; `pipelineManager.ts` Sequences the Scan".
 
 The temporary per-scan databases are runtime artifacts and are not represented as one shared committed database file.
 
 ```text
 backend/
 ├── src/
-│   ├── index.ts
+│   ├── app.ts
+│   ├── server.ts
+│   ├── pipelineManager.ts
 │   │
 │   ├── routes/
 │   │   └── scans.ts
@@ -505,7 +529,7 @@ backend/
 
 To keep responsibilities clear:
 
-- Routes receive and return HTTP data; they do not analyze repositories.
+- Routes receive and return HTTP data; they do not analyze repositories. `pipelineManager.ts`, not the route, sequences the whole scan and guarantees cleanup runs via try/finally.
 - GitHub integration handles GitHub-specific validation, metadata, and snapshot access.
 - Scan files discover and classify repository files.
 - Chunking files parse and divide files into normalized evidence.
