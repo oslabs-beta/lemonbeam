@@ -1,11 +1,9 @@
 -- SQLite schema placeholder.
 --
--- OPEN QUESTION (#8, not yet decided): don't implement this until the team
--- confirms the MVP actually persists chunks to SQLite this sprint (vs.
--- in-memory only) — see DECISIONS.md and PROJECT_BRIEF.md >
--- "Asynchronous Scan Processing".
+-- NOT BUILT FOR THE MVP — see DECISIONS.md > "In-Memory Chunk Storage for
+-- the MVP, SQLite as a Stretch Goal". This is a stretch goal.
 --
--- TODO (once #8 says yes): implement the three-table MVP schema
+-- TODO (stretch goal): implement the three-table MVP schema
 -- (scan_metadata, files, chunks) exactly as specified in DATABASE.md >
 -- "Proposed MVP Schema", including the indexes listed in DATABASE.md >
 -- "Indexes". DATABASE.md is the source of truth for the exact SQL — don't

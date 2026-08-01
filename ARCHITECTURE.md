@@ -225,6 +225,8 @@ Every chunker returns the shared normalized chunk shape defined in `types/chunk.
 
 SQLite acts as a structured evidence workspace between repository analysis and guide generation.
 
+**Not built for the MVP:** `scanService.ts` returns chunks and skipped files in memory instead (see `DECISIONS.md` > "In-Memory Chunk Storage for the MVP, SQLite as a Stretch Goal"). This section describes the stretch-goal design that `DATABASE.md` already specifies.
+
 For each scan, LemonBeam creates an isolated temporary SQLite database. It stores the repository evidence and metadata needed for retrieval.
 
 At a high level, stored information may include:

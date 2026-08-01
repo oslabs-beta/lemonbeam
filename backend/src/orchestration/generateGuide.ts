@@ -6,8 +6,10 @@
 // Stretch Goal" and ARCHITECTURE.md > "Guide Orchestration".
 //
 // TODO (MVP):
-// 1. retrieve evidence across all five primary sections (not narrowed to
-//    one section — see db/chunkStore.ts, once #8 resolves storage)
+// 1. use the in-memory { chunks, skippedFiles } passed in from
+//    pipelineManager.ts (scanService.ts's output) — for the MVP this is a
+//    plain value, not a SQLite query (see DECISIONS.md > "In-Memory Chunk
+//    Storage for the MVP, SQLite as a Stretch Goal")
 // 2. build the single general MVP prompt using prompts/mvpGuidePrompt.ts
 // 3. make ONE LLM call via utils/openaiClient.ts, using the user-supplied
 //    API key passed in from pipelineManager.ts — never a shared

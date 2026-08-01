@@ -1,11 +1,10 @@
 // Chunk storage helpers — insert/select functions for one scan's SQLite
 // database (see db/database.ts).
 //
-// OPEN QUESTION (#8, not yet decided): same as db/database.ts — don't start
-// implementing this until the team confirms the MVP actually stores chunks
-// in SQLite rather than keeping them in memory.
+// NOT BUILT FOR THE MVP — same as db/database.ts. See DECISIONS.md >
+// "In-Memory Chunk Storage for the MVP, SQLite as a Stretch Goal".
 //
-// TODO (once #8 says yes):
+// TODO (stretch goal):
 // - insert the scan_metadata row, files rows, and chunks rows described in
 //   DATABASE.md's "Proposed MVP Schema" (use transactions for batches)
 // - use parameterized queries / prepared statements only (see DECISIONS.md

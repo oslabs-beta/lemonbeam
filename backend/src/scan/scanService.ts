@@ -28,9 +28,9 @@
 //    skipped-file list to orchestration/generateGuide.ts so it can build
 //    the Uncertainties and Missing Information section
 //
-// OPEN QUESTION (#8, not yet decided): does this function also write chunks
-// to this scan's SQLite database (via db/chunkStore.ts), or just return
-// Chunk[] + skipped-files in memory for the MVP? Resolve before implementing
-// step 5 — see DECISIONS.md and PROJECT_BRIEF.md > "Asynchronous Scan
-// Processing" for related context.
+// For the MVP, this function does NOT write to SQLite — it returns
+// { chunks, skippedFiles } in memory only (see DECISIONS.md > "In-Memory
+// Chunk Storage for the MVP, SQLite as a Stretch Goal"). Persisting via
+// db/chunkStore.ts is a stretch goal, built alongside "Five Separate
+// Section-Generation Tasks" and/or "Asynchronous Scan Processing".
 export {}

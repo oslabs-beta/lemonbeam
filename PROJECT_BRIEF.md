@@ -444,6 +444,10 @@ Replace the MVP's single combined generation task with five independent tasks â€
 
 Replace the single blocking `POST /api/scans` request with an asynchronous flow: the endpoint starts the scan and returns immediately with a scan ID, a new status mechanism (polling endpoint or server-sent events) reports progress, and the frontend displays progress until the guide is ready. This removes the request-timeout ceiling that constrains the MVP's repository size limits (see `DECISIONS.md` > "Repository Size Limits for the MVP"); it is a prerequisite for raising those limits, not vector-based retrieval.
 
+### SQLite-Backed Evidence Storage
+
+Persist chunks and skipped-file records to each scan's SQLite database, as designed in `DATABASE.md`, instead of holding them in memory for the lifetime of one request (see `DECISIONS.md` > "In-Memory Chunk Storage for the MVP, SQLite as a Stretch Goal"). Most useful once "Five Separate Section-Generation Tasks" needs per-section filtered retrieval, or "Asynchronous Scan Processing" needs scan data to outlive a single request.
+
 ### Vector-Based Retrieval
 
 Add vector-based retrieval alongside rule-based metadata retrieval and compare guide quality against the deterministic approach.

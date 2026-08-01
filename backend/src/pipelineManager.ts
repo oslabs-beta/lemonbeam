@@ -29,10 +29,9 @@
 //    downloaded repository. scanService.ts returns both the produced chunks
 //    and a list of skipped files (path + reason) — see DECISIONS.md >
 //    "Skipped Files Are Not Fatal, and Are Reported"
-//    OPEN QUESTION (#8, not yet decided): do the chunks (and skipped-file
-//    list) get stored in this scan's SQLite database (db/database.ts,
-//    db/chunkStore.ts), or kept in memory only for the MVP? Resolve this
-//    before wiring step 5 up to step 6.
+//    For the MVP this is NOT written to SQLite — pass the returned
+//    { chunks, skippedFiles } straight into step 6 (see DECISIONS.md >
+//    "In-Memory Chunk Storage for the MVP, SQLite as a Stretch Goal").
 // 6. calls orchestration/generateGuide.ts to generate the guide. For the
 //    MVP this is ONE combined LLM call producing all five primary sections
 //    (see DECISIONS.md > "One Combined Generation Call for the MVP, Five

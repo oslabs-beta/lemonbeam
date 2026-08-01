@@ -124,6 +124,29 @@ The MVP supports single-package repositories and does not support monorepos.
 
 ---
 
+## GitHub Access Uses a Personal Access Token for Validation Calls
+
+### Decision
+
+The backend uses one shared GitHub personal access token (stored as `GITHUB_TOKEN` in the backend's environment, never committed) when calling GitHub's REST API to validate a repository and resolve its default branch and commit SHA.
+
+Downloading the actual repository snapshot does not use this token, or the REST API at all — it uses the unauthenticated tarball URL `codeload.github.com/{owner}/{repo}/tar.gz/{sha}`.
+
+### Reasons
+
+- GitHub's REST API allows only 60 requests/hour to unauthenticated callers — shared across the whole team while testing, that's easy to hit. A token, even with zero scopes selected, raises this to 5,000 requests/hour.
+- Unlike the OpenAI key, this costs LemonBeam nothing and only ever reads public data, so one shared server-side token is appropriate — this is not a BYOK/per-user credential.
+- The download step doesn't need this token at all, since the tarball URL is a plain file download, not a rate-limited API call.
+
+### Consequences
+
+- `GITHUB_TOKEN` is added to `backend/.env.example` as a placeholder; the real value goes only in each developer's own untracked `.env`.
+- `github/validateRepository.ts` attaches this token as an `Authorization` header on its GitHub API calls.
+- `github/downloadSnapshot.ts` does not use this token.
+- This token must never be logged, committed, or exposed in an error response — same rule as the OpenAI key, though this one is a shared server credential, not a per-request user-supplied one.
+
+---
+
 ## Repository Size Limits for the MVP
 
 ### Decision
@@ -326,6 +349,30 @@ The database and other temporary scan files are deleted after the scan lifecycle
 - Each scan requires a unique workspace and database path.
 - Cleanup must remove the repository snapshot, SQLite database, and intermediate files.
 - Persistent scan history and caching are outside the MVP.
+
+---
+
+## In-Memory Chunk Storage for the MVP, SQLite as a Stretch Goal
+
+### Decision
+
+For the MVP, `scanService.ts` returns chunks and the skipped-files list as plain in-memory data — passed directly from `pipelineManager.ts` to `orchestration/generateGuide.ts` within the same request. Nothing is written to SQLite. `db/database.ts`, `db/chunkStore.ts`, and `db/schema.sql` are not implemented for the MVP.
+
+Persisting chunks to each scan's SQLite database, as designed in `DATABASE.md`, becomes a stretch goal (see `PROJECT_BRIEF.md` > "SQLite-Backed Evidence Storage"), built alongside "Five Separate Section-Generation Tasks" and/or "Asynchronous Scan Processing".
+
+### Reasons
+
+- SQLite's main value is filtered retrieval — querying "just the config chunks" or "just the test chunks" for one section. The MVP's single combined generation call doesn't filter by section; it wants all the evidence at once, which a plain in-memory list already provides.
+- The MVP is one synchronous request, start to finish (see "Single Scan Endpoint"). If the process crashes mid-request, the request fails regardless of whether chunk data was in memory or in SQLite — durability only starts to matter once a scan can outlive a single request, which requires the "Asynchronous Scan Processing" stretch goal.
+- A whole repository's chunks, even at the MVP's ~25-50MB size limit, comfortably fit in memory — well under the RAM available on any reasonable dev machine or hosting plan. This is not a capacity risk.
+- Skipping SQLite for the MVP removes real build work (`db/database.ts`, `db/chunkStore.ts`, `db/schema.sql`) without losing anything the MVP actually needs, consistent with "One Combined Generation Call for the MVP, Five Tasks as a Stretch Goal."
+
+### Consequences
+
+- `db/database.ts`, `db/chunkStore.ts`, and `db/schema.sql` stay as placeholders for the MVP.
+- `scanService.ts` returns `{ chunks, skippedFiles }` directly; `generateGuide.ts` reads from that in-memory value rather than querying a database.
+- `DATABASE.md`'s schema remains the agreed design for when SQLite storage is built later — it does not need to be redesigned, only implemented.
+- Multiple concurrent scans each hold their own chunk data in the same server process's memory; fine for MVP-scale testing, but a scaling concern to revisit alongside the hosting-platform choice and the async-processing stretch goal.
 
 ---
 

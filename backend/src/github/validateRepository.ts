@@ -14,8 +14,9 @@
 // then resolve and return the default branch and the exact commit SHA to
 // download (github/downloadSnapshot.ts uses these next).
 //
-// OPEN QUESTION (#3, not yet decided): whether these validation calls go
-// through GitHub's REST API unauthenticated (60/hr per IP limit) or with a
-// token for a higher limit. See github/downloadSnapshot.ts for the related
-// question about the download step itself.
+// Uses GitHub's REST API, authenticated with the shared GITHUB_TOKEN env
+// var (Authorization header) — see DECISIONS.md > "GitHub Access Uses a
+// Personal Access Token for Validation Calls". This is a normal shared
+// server credential, NOT per-user/BYOK like the OpenAI key, since it only
+// ever reads public data and costs nothing to use.
 export {}

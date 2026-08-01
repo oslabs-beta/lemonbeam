@@ -332,7 +332,7 @@ Test required fields, optional fields, line ranges, parser values, and chunk tex
 
 ### SQLite
 
-Test that:
+Not applicable to the MVP (in-memory chunk storage — see `DECISIONS.md` > "In-Memory Chunk Storage for the MVP, SQLite as a Stretch Goal"). Once SQLite storage is built as a stretch goal, test that:
 
 - every scan receives its own database file
 - `scan_metadata` contains one row

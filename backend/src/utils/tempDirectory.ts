@@ -1,6 +1,10 @@
-// Creates one scan's isolated temporary directory (and, once #8 is
-// resolved, its SQLite database path inside that directory) — never a
-// shared path. See DATABASE.md > "Concurrent Scan Isolation".
+// Creates one scan's isolated temporary directory — never a shared path.
+// For the MVP this only needs to hold the downloaded repository snapshot;
+// no SQLite database path is needed since chunk storage is in-memory (see
+// DECISIONS.md > "In-Memory Chunk Storage for the MVP, SQLite as a
+// Stretch Goal"). Once SQLite storage is built as a stretch goal, this
+// directory will also hold that scan's database file (see DATABASE.md >
+// "Concurrent Scan Isolation").
 //
 // Called by pipelineManager.ts, right after it generates the scan ID and
 // right before any GitHub request is made (see DECISIONS.md > "Thin

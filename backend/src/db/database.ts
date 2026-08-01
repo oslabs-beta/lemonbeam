@@ -3,13 +3,13 @@
 // path like backend/data/lemonbeam.sqlite is UNSAFE — every scan needs its
 // own temp directory + database path (see utils/tempDirectory.ts).
 //
-// OPEN QUESTION (#8, not yet decided by the team): does the MVP actually
-// persist chunks to SQLite this sprint, or keep everything in memory for
-// now and build this file in a later sprint? Don't start implementing this
-// file until that's resolved — see DECISIONS.md and PROJECT_BRIEF.md >
-// "Asynchronous Scan Processing".
+// NOT BUILT FOR THE MVP — see DECISIONS.md > "In-Memory Chunk Storage for
+// the MVP, SQLite as a Stretch Goal". scanService.ts holds chunks in
+// memory instead. This file is a stretch goal, built alongside "Five
+// Separate Section-Generation Tasks" and/or "Asynchronous Scan
+// Processing" (see PROJECT_BRIEF.md).
 //
-// TODO (once #8 says yes, build this now): given a scan's unique database
+// TODO (stretch goal): given a scan's unique database
 // file path (inside that scan's temp directory), open/create the SQLite
 // file, enable `PRAGMA foreign_keys = ON`, and run db/schema.sql against it
 // so scan_metadata/files/chunks tables exist before anything is inserted.

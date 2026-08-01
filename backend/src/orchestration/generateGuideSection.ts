@@ -13,9 +13,10 @@
 // - accept an OpenAI client (see utils/openaiClient.ts) built from the
 //   request's openaiApiKey — construct it per-request, never as a shared
 //   singleton
-// - retrieve relevant chunks (via db/chunkStore.ts, once #8 resolves
-//   storage) — for the MVP, evidence across all five sections; in the
-//   stretch goal, evidence scoped to one section
+// - retrieve relevant chunks — for the MVP, read directly from the
+//   in-memory chunk list passed in (see DECISIONS.md > "In-Memory Chunk
+//   Storage for the MVP, SQLite as a Stretch Goal"); in the stretch goal,
+//   query db/chunkStore.ts, scoped to one section
 // - use the matching prompt builder from prompts/ — for the MVP, the one
 //   general prompt file; in the stretch goal, the section-specific one
 // - catch OpenAI authentication errors here and rethrow a specific error
