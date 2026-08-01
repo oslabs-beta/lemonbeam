@@ -1,7 +1,6 @@
-// Tree-sitter chunking stratety described in ARCHITECTURE.md
-// The chunkFile() function below is this file's only public entry point
-// it's what the chunking router (chunkFile.ts) will call for source, script,
-// and type files. Test-specific extraction is a separate strategy.
+// Tree-sitter chunking strategy described in ARCHITECTURE.md.
+// This module's public entry point is chunkWithTreeSitter(), which chunkFile.ts calls
+// for source, script, and type files. Test-specific extraction is a separate strategy.
 
 import Parser from "tree-sitter";
 import TypeScriptPackage from "tree-sitter-typescript";
