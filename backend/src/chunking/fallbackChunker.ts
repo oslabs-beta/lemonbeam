@@ -27,8 +27,48 @@ function fallbackChunker(input: ChunkInput): Chunk[] {
     
     for (const line of lines) {
         if (line.text.trim().length === 0) {
-            
+            if (blockStartLine && blockEndLine) {
+                chunks.push({
+                    scanId: input.scanId,
+                    filePath: input.filePath,
+                    filePurpose: input.filePurpose,
+                    language: input.language,
+                    parser: "fallback",
+                    chunkKind: "text_block",
+                    startLine: blockStartLine.lineNumber,
+                    endLine: blockEndLine.lineNumber,
+                    text: input.content.slice(
+                        blockStartLine.startOffset,
+                        blockEndLine.endOffset,
+                    ),
+                });
+
+                blockStartLine = undefined; 
+                blockEndLine = undefined; 
+            }
+
+            continue
         }
+
+        blockStartLine ??= line; 
+        blockEndLine = line; 
+    }
+
+    if (blockStartLine && blockEndLine) {
+        chunks.push({
+            scanId: input.scanId,
+            filePath: input.filePath,
+            filePurpose: input.filePurpose,
+            language: input.language,
+            parser: "fallback",
+            chunkKind: "text_block",
+            startLine: blockStartLine.lineNumber,
+            endLine: blockEndLine.lineNumber,
+            text: input.content.slice(
+            blockStartLine.startOffset,
+            blockEndLine.endOffset,
+            ),
+        });
     }
 
     
