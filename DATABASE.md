@@ -268,7 +268,6 @@ Examples may include:
 ```text
 function
 method
-constructor
 class
 interface
 type
