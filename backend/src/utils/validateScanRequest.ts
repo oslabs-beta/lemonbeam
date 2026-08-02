@@ -3,6 +3,11 @@
 // repository download or LLM call happens. See API_CONTRACT.md for the
 // exact request shape and error codes.
 //
+// Called directly by routes/scans.ts, before it calls pipelineManager.ts —
+// this is the one piece of request-shape validation that stays in routes/
+// (see DECISIONS.md > "Thin Routes; `pipelineManager.ts` Sequences the
+// Scan").
+//
 // TODO:
 // - reject unknown fields -> 400 INVALID_REQUEST_BODY
 // - require repositoryUrl -> 400 MISSING_REPOSITORY_URL / INVALID_REPOSITORY_URL
