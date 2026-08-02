@@ -82,7 +82,7 @@ function detectConfigKind(input: ChunkInput): ConfigKind | undefined {
 //! ====== chunker ========
 
 function canHandleConfig(input: ChunkInput): boolean {
-  return detectConfigKind(input) !== undefined;
+    return detectConfigKind(input) !== undefined;
 }
 
 function configChunker(input: ChunkInput): Chunk[] {
@@ -93,28 +93,28 @@ function configChunker(input: ChunkInput): Chunk[] {
 
     try {
         switch (kind) {
-        case "package-json":
+            case "package-json":
             return chunkPackageJson(input);
-        case "tsconfig":
+            case "tsconfig":
             return chunkTsconfig(input);
-        case "eslint-json":
+            case "eslint-json":
             return chunkGenericJsonConfig(input, "eslint config");
-        case "prettier-json":
+            case "prettier-json":
             return chunkGenericJsonConfig(input, "prettier config");
-        case "generic-json":
+            case "generic-json":
             return chunkGenericJsonConfig(input, "config");
-        case "vite":
-        case "webpack":
-        case "babel":
-        case "eslint-js":
-        case "prettier-js":
-        case "generic-code":
+            case "vite":
+            case "webpack":
+            case "babel":
+            case "eslint-js":
+            case "prettier-js":
+            case "generic-code":
             return [chunkRawConfigText(input, labelFor(kind))];
         }
-    } catch (err) {
-        // Catches JSON parse errors safely, returning [] to match pipeline expectations
-        return [];
-    }
+        } catch (err: any) {
+        const errorMessage = err?.message || String(err);
+        throw new Error(`Failed to parse config file: ${errorMessage}`);
+        }
 }
 
 function labelFor(kind: ConfigKind): string {

@@ -38,15 +38,8 @@ const chunkers: ChunkerEntry[] = [
 ];
 
 function chunkFile(file: ChunkInput): ChunkResult {
-    const matchingChunker = chunkers.find((c) => c.canHandle(file));
-
-    if (!matchingChunker) {
-        return {
-        ok: false,
-        reason: `No suitable chunker found for file: ${file.filePath}`,
-        filePath: file.filePath,
-        };
-    }
+  // Since the fallback chunker matches everything, a chunker is always found.
+    const matchingChunker = chunkers.find((c) => c.canHandle(file))!;
 
     try {
         const chunks = matchingChunker.chunk(file);
