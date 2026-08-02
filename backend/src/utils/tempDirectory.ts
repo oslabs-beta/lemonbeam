@@ -1,3 +1,18 @@
-// Placeholder for creating temporary scan directories.
-// This will eventually provide a safe local folder for downloaded GitHub snapshots.
+// Creates one scan's isolated temporary directory — never a shared path.
+// For the MVP this only needs to hold the downloaded repository snapshot;
+// no SQLite database path is needed since chunk storage is in-memory (see
+// DECISIONS.md > "In-Memory Chunk Storage for the MVP, SQLite as a
+// Stretch Goal"). Once SQLite storage is built as a stretch goal, this
+// directory will also hold that scan's database file (see DATABASE.md >
+// "Concurrent Scan Isolation").
+//
+// Called by pipelineManager.ts, right after it generates the scan ID and
+// right before any GitHub request is made (see DECISIONS.md > "Thin
+// Routes; `pipelineManager.ts` Sequences the Scan" and ARCHITECTURE.md >
+// "Express Backend").
+//
+// TODO: export a function that, given a scan ID, creates and returns a
+// unique temp directory path (e.g. under the OS temp dir), something like
+// /tmp/lemonbeam/{scanId}/, for the downloaded repository snapshot and
+// (later, if #8 says yes) that scan's SQLite database file to live in.
 export {}
