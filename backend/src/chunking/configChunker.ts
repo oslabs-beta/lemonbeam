@@ -1,7 +1,7 @@
 // Config/rule-based chunker.
 
 // Extracts high-signal info from common config files (package.json, tsconfig*.json, eslint/prettier configs).
- // JS/TS configs and .env* files are currently indexed as bounded raw text rather than being parsed into fields.
+// JS/TS configs and .env* files are currently indexed as bounded raw text rather than being parsed into fields.
 
 // Design goal: extract SIGNAL, not a mirror of the file. A repo with 300
 // dependencies or a 2000-line webpack config shouldn't flood the index
@@ -13,30 +13,8 @@
 // repository scan if one config file is malformed.
 
 import { basename } from "node:path";
-import { parse as parseJsonc, type ParseError } from "jsonc-parser"; 
-import type { Chunk, FilePurpose, Language} from "../types/chunk.js";
-
-// Define the missing types directly in the file to unblock development
-export type ClassifiedFile = {
-    scanId: string;
-    filePath: string;
-    purpose: FilePurpose;
-    language: Language;
-    extension: string;
-    content: string;
-};
-
-// This pattern is widely used for robust error handling
-export type ChunkResult = 
-    | { ok: true; chunks: Chunk[] }
-    | { ok: false; reason: string; filePath: string };
-
-// This serves as a contract or blueprint for all chunking modules
-export interface Chunker {
-    name: string;
-    canHandle(file: ClassifiedFile): boolean;
-    chunk(file: ClassifiedFile): ChunkResult;
-}
+import { parse as parseJsonc, type ParseError } from "jsonc-parser";
+import type { Chunk, ChunkInput } from "../types/chunk.js";
 
 //! ====== noise control constants =====
 // Tune these based on real repos; they're a first guess, not gospel.
@@ -52,12 +30,6 @@ const MAX_RAW_TEXT_CHARS = 4000;
 
 //! ======== config kind detection =======
 
-/**
- * The specific "flavor" of config file we've matched by filename.
- * Distinguishing these lets us apply per-format parsing logic below
- * instead of treating every config file the same way.
- */
-
 type ConfigKind =
     | "package-json"
     | "tsconfig"
@@ -70,12 +42,6 @@ type ConfigKind =
     | "prettier-js"
     | "generic-json"
     | "generic-code";
-
-/**
- * Filename patterns used to identify each known config kind.
- * Order doesn't matter here (each pattern is specific enough not to
- * collide), unlike the CHUNKERS array order in chunkFile.ts.
- */
 
 const FILENAME_PATTERNS: ReadonlyArray<{
     kind: Exclude<ConfigKind, "generic-json" | "generic-code">;
@@ -101,26 +67,13 @@ const FILENAME_PATTERNS: ReadonlyArray<{
     },
 ];
 
-/**
- * Figure out which config format we're dealing with, based on filename
- * first, and the scanner's own classification as a fallback.
- *
- * @returns undefined means "not a config file we recognize"
- */
-
-function detectConfigKind(file: ClassifiedFile): ConfigKind | undefined {
-    const name = basename(file.filePath);
+function detectConfigKind(input: ChunkInput): ConfigKind | undefined {
+    const name = basename(input.filePath);
     const matched = FILENAME_PATTERNS.find((p) => p.pattern.test(name));
     if (matched) return matched.kind;
 
-    // Fallback: the scanner (classifyFile.ts) already decided this file's
-    // purpose is "config", but its filename doesn't match anything we know
-    // by name (custom tool, unusual naming convention, etc). We still claim
-    // it here rather than letting it fall through to the source chunker,
-    // since a raw-text config chunk is more useful than none at all.
-
-    if (file.purpose === "config") {
-        return file.extension === ".json" ? "generic-json" : "generic-code";
+    if (input.filePurpose === "config") {
+        return input.filePath.endsWith(".json") ? "generic-json" : "generic-code";
     }
 
     return undefined;
@@ -128,89 +81,41 @@ function detectConfigKind(file: ClassifiedFile): ConfigKind | undefined {
 
 //! ====== chunker ========
 
-/**
- * The exported chunker object. Implements the shared Chunker interface
- * (canHandle + chunk) so chunkFile.ts can call it without knowing
- * anything about config-file internals.
- */
+function canHandleConfig(input: ChunkInput): boolean {
+    return detectConfigKind(input) !== undefined;
+}
 
-const configChunker: Chunker = {
-    name: "configChunker",
-
-    /**
-     * Cheap check: does this file look like a config file we can parse?
-     * Called by the router BEFORE chunk() — chunk() assumes this already
-     * returned true.
-     */
-
-    canHandle(file: ClassifiedFile): boolean {
-        return detectConfigKind(file) !== undefined;
-    },
-
-    /**
-     * Actually parse the file and produce chunks. Wrapped in try/catch so a
-     * malformed config file (bad JSON, unexpected shape) can't crash the
-     * whole scan — it just reports failure back to the router instead.
-     */
-
-    chunk(file: ClassifiedFile): ChunkResult {
-        const kind = detectConfigKind(file);
-        if (!kind) {
-        // Defensive: shouldn't happen if canHandle() was checked first, but
-        // we don't want to silently assume the caller behaved correctly.
-        return {
-            ok: false,
-            reason: "not a recognized config file",
-            filePath: file.filePath,
-        };
+function configChunker(input: ChunkInput): Chunk[] {
+    const kind = detectConfigKind(input);
+    if (!kind) {
+        return [];
     }
 
     try {
         switch (kind) {
             case "package-json":
-            return { ok: true, chunks: chunkPackageJson(file) };
+            return chunkPackageJson(input);
             case "tsconfig":
-            return { ok: true, chunks: chunkTsconfig(file) };
+            return chunkTsconfig(input);
             case "eslint-json":
-            return {
-                ok: true,
-                chunks: chunkGenericJsonConfig(file, "eslint config"),
-            };
+            return chunkGenericJsonConfig(input, "eslint config");
             case "prettier-json":
-            return {
-                ok: true,
-                chunks: chunkGenericJsonConfig(file, "prettier config"),
-            };
+            return chunkGenericJsonConfig(input, "prettier config");
             case "generic-json":
-            return { ok: true, chunks: chunkGenericJsonConfig(file, "config") };
-            // These formats are plain JS/TS modules (e.g. `export default
-            // defineConfig({...})`), not JSON — we can't safely parse them
-            // without a real JS/TS AST (tree-sitter's job elsewhere in the
-            // pipeline), so we just index the raw, bounded text instead.
+            return chunkGenericJsonConfig(input, "config");
             case "vite":
             case "webpack":
             case "babel":
             case "eslint-js":
             case "prettier-js":
             case "generic-code":
-            return {
-                ok: true,
-                chunks: [chunkRawConfigText(file, labelFor(kind))],
-            };
+            return [chunkRawConfigText(input, labelFor(kind))];
         }
-        } catch (err) {
-        // Catches JSON parse errors, unexpected shapes thrown from the
-        // chunkXxx() helpers below, etc. Never let this bubble up.
-        return {
-            ok: false,
-            reason: err instanceof Error ? err.message : String(err),
-            filePath: file.filePath,
-        };
+        } catch (err: any) {
+        const errorMessage = err?.message || String(err);
+        throw new Error(`Failed to parse config file: ${errorMessage}`);
         }
-    },
-};
-
-/** Human-readable label used as the chunkName for raw-text (non-JSON) configs. */
+}
 
 function labelFor(kind: ConfigKind): string {
     switch (kind) {
@@ -231,15 +136,8 @@ function labelFor(kind: ConfigKind): string {
 
 //! ====== package.json ======
 
-/**
- * Split package.json into separate chunks for scripts, dependencies,
- * devDependencies, and basic package identity — rather than one giant
- * JSON blob — so retrieval can target e.g. "how do I run this project"
- * (scripts) independently from "what libraries does it use" (dependencies).
- */
-
-function chunkPackageJson(file: ClassifiedFile): Chunk[] {
-    const data = parseJsoncOrThrow(file.content);
+function chunkPackageJson(input: ChunkInput): Chunk[] {
+    const data = parseJsoncOrThrow(input.content);
     if (!isRecord(data)) {
         throw new Error("package.json did not parse to an object");
     }
@@ -249,7 +147,7 @@ function chunkPackageJson(file: ClassifiedFile): Chunk[] {
     const scripts = data["scripts"];
     if (isRecord(scripts)) {
         chunks.push(
-        makeChunk(file, "package_scripts", "scripts", formatScripts(scripts)),
+        makeChunk(input, "package_scripts", "scripts", formatScripts(scripts)),
         );
     }
 
@@ -257,16 +155,10 @@ function chunkPackageJson(file: ClassifiedFile): Chunk[] {
         const deps = data[field];
         if (isRecord(deps)) {
         chunks.push(
-            makeChunk(file, "dependencies", field, formatDependencyNames(deps)),
+            makeChunk(input, "dependencies", field, formatDependencyNames(deps)),
         );
         }
     }
-
-  // Light identity metadata (name/version/description/engines) — small
-  // and genuinely useful for a guide ("what is this project, what Node
-  // version does it target"), without pulling in the rest of the manifest
-  // (e.g. we deliberately skip "author", "license", "repository" here —
-  // low retrieval value for a starter guide).
 
     const identityLines = (["name", "version", "description", "engines"] as const)
         .filter((key) => key in data)
@@ -275,7 +167,7 @@ function chunkPackageJson(file: ClassifiedFile): Chunk[] {
     if (identityLines.length > 0) {
         chunks.push(
         makeChunk(
-            file,
+            input,
             "tool_config",
             "package metadata",
             identityLines.join("\n"),
@@ -285,11 +177,6 @@ function chunkPackageJson(file: ClassifiedFile): Chunk[] {
 
     return chunks;
 }
-
-/**
- * Format the `scripts` object as readable "name: command" lines, capped
- * so a package.json with 100 scripts doesn't dominate the index.
- */
 
 function formatScripts(scripts: Record<string, unknown>): string {
     const entries = Object.entries(scripts).slice(0, MAX_SCRIPT_ENTRIES);
@@ -301,13 +188,6 @@ function formatScripts(scripts: Record<string, unknown>): string {
     }
     return lines.join("\n");
 }
-
-/**
- * Format dependency NAMES ONLY (no version numbers) as a comma-separated
- * list, capped at MAX_DEPENDENCY_NAMES. Versions are deliberately dropped
- * — they change constantly and add noise without helping "what does this
- * project use" retrieval.
- */
 
 function formatDependencyNames(deps: Record<string, unknown>): string {
     const names = Object.keys(deps).sort();
@@ -321,15 +201,8 @@ function formatDependencyNames(deps: Record<string, unknown>): string {
 
 //! ========= tsconfig.json ========
 
-/**
- * Split tsconfig.json into a compilerOptions chunk and a "project
- * structure" chunk (extends/include/exclude/references grouped together,
- * since individually they're low-signal but combined they explain how
- * the project is laid out — e.g. a monorepo using project references).
- */
-
-function chunkTsconfig(file: ClassifiedFile): Chunk[] {
-    const data = parseJsoncOrThrow(file.content);
+function chunkTsconfig(input: ChunkInput): Chunk[] {
+    const data = parseJsoncOrThrow(input.content);
     if (!isRecord(data)) {
         throw new Error("tsconfig did not parse to an object");
     }
@@ -340,7 +213,7 @@ function chunkTsconfig(file: ClassifiedFile): Chunk[] {
     if (isRecord(compilerOptions)) {
         chunks.push(
         makeChunk(
-            file,
+            input,
             "compiler_options",
             "compilerOptions",
             stringifyCompact(compilerOptions),
@@ -348,18 +221,14 @@ function chunkTsconfig(file: ClassifiedFile): Chunk[] {
         );
     }
 
-  // Project shape: what's included, excluded, extended, or referenced.
-  // Grouped together since each individually is low-signal, but the
-  // combination tells you how the project is structured.
-
     const shapeFields = (["extends", "include", "exclude", "references"] as const)
-        .filter((key) => key in data)
-        .map((key) => `${key}: ${stringifyCompact(data[key])}`);
+    .filter((key) => key in data)
+    .map((key) => `${key}: ${stringifyCompact(data[key])}`);
 
     if (shapeFields.length > 0) {
         chunks.push(
         makeChunk(
-            file,
+            input,
             "tool_config",
             "project structure",
             shapeFields.join("\n"),
@@ -370,75 +239,43 @@ function chunkTsconfig(file: ClassifiedFile): Chunk[] {
     return chunks;
 }
 
-//! ======== generic JSON config (eslintrc, prettierrc, unknowns) ========
+//! ======== generic JSON config ========
 
-/**
- * Handles small, flat JSON config files (eslintrc, prettierrc, or any
- * unrecognized JSON config) as a single chunk. These are usually short
- * enough that splitting further (like package.json/tsconfig) isn't worth
- * the added complexity.
- *
- * @param label human-readable chunk name, e.g. "eslint config"
- */
-
-function chunkGenericJsonConfig(file: ClassifiedFile, label: string): Chunk[] {
-    const data = parseJsoncOrThrow(file.content);
-    return [makeChunk(file, "tool_config", label, stringifyCompact(data))];
+function chunkGenericJsonConfig(input: ChunkInput, label: string): Chunk[] {
+    const data = parseJsoncOrThrow(input.content);
+    return [makeChunk(input, "tool_config", label, stringifyCompact(data))];
 }
 
-//! ========== JS/TS-based configs (vite, webpack, babel, flat eslint, etc) ======
+//! ========== JS/TS-based configs ======
 
-/**
- * For config files written as executable JS/TS (not JSON), we can't
- * safely extract structured fields with regex/JSON.parse — that would
- * need real AST parsing (tree-sitter's territory). Instead we index the
- * raw file text, truncated to a max length so a huge webpack config
- * doesn't blow out the index.
- */
-
-function chunkRawConfigText(file: ClassifiedFile, label: string): Chunk {
-    const truncated = file.content.length > MAX_RAW_TEXT_CHARS;
+function chunkRawConfigText(input: ChunkInput, label: string): Chunk {
+    const truncated = input.content.length > MAX_RAW_TEXT_CHARS;
     const text = truncated
-        ? file.content.slice(0, MAX_RAW_TEXT_CHARS) + "\n... (truncated)"
-        : file.content;
+        ? input.content.slice(0, MAX_RAW_TEXT_CHARS) + "\n... (truncated)"
+        : input.content;
 
-    return makeChunk(file, "tool_config", label, text);
+    return makeChunk(input, "tool_config", label, text);
 }
 
 //! ============ shared helpers ================
 
-/**
- * Build a Chunk object with the fields common to every chunk this file
- * produces (scanId, filePath, purpose, language, parser="config").
- * Centralizing this avoids repeating the same object shape everywhere
- * above and keeps the Chunk contract in one place.
- */
-
 function makeChunk(
-    file: ClassifiedFile,
+    input: ChunkInput,
     chunkKind: Chunk["chunkKind"],
     chunkName: string,
     text: string,
     ): Chunk {
     return {
-        scanId: file.scanId,
-        filePath: file.filePath,
-        filePurpose: file.purpose,
-        language: file.language,
+        scanId: input.scanId,
+        filePath: input.filePath,
+        filePurpose: input.filePurpose,
+        language: input.language,
         parser: "config",
         chunkKind,
         chunkName,
         text,
     };
 }
-
-/**
- * Parse JSON/JSONC content, throwing a descriptive error on failure
- * instead of returning a partial/garbage result. jsonc-parser is used
- * instead of JSON.parse because tsconfig.json (and often eslintrc/
- * prettierrc in practice) legally contain comments and trailing commas,
- * which JSON.parse would reject outright.
- */
 
 function parseJsoncOrThrow(content: string): unknown {
     const errors: ParseError[] = [];
@@ -451,23 +288,12 @@ function parseJsoncOrThrow(content: string): unknown {
     return result;
 }
 
-/**
- * Type guard: is this a plain object (not null, not an array)?
- * Used to safely narrow `unknown` JSON values before indexing into them.
- */
-
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" && value !== null && !Array.isArray(value);
 }
-
-/**
- * Pretty-print a JSON value with 2-space indentation, for embedding
- * structured data (compilerOptions, generic config objects) into chunk
- * text in a readable way.
- */
 
 function stringifyCompact(value: unknown): string {
     return JSON.stringify(value, null, 2);
 }
 
-export { configChunker };
+export { configChunker, canHandleConfig };
