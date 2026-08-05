@@ -270,6 +270,8 @@ Test that low-confidence files remain `unknown`.
 
 Test each strategy separately.
 
+Also test the scan-level resilience behavior: when a chunker fails on one file, `scanService.ts` skips that file, continues scanning the rest of the repository, and records the file path and reason so it can be reported in the final Uncertainties section (see `DECISIONS.md` > "Skipped Files Are Not Fatal, and Are Reported"). A single bad file must not abort the scan.
+
 #### Tree-sitter
 
 Verify extraction of supported structures such as:
@@ -330,7 +332,7 @@ Test required fields, optional fields, line ranges, parser values, and chunk tex
 
 ### SQLite
 
-Test that:
+Not applicable to the MVP (in-memory chunk storage — see `DECISIONS.md` > "In-Memory Chunk Storage for the MVP, SQLite as a Stretch Goal"). Once SQLite storage is built as a stretch goal, test that:
 
 - every scan receives its own database file
 - `scan_metadata` contains one row
@@ -345,18 +347,25 @@ Test that:
 
 ### Orchestration
 
-Test that LemonBeam:
+For the MVP (one combined generation task), test that LemonBeam:
 
-- creates five primary section tasks
+- retrieves evidence across all five primary sections before building the prompt
+- builds the single general MVP prompt
+- makes exactly one LLM call
+- parses the response into the fixed section order
+- collects citations from the combined response
+- assembles the sixth uncertainty section from skipped-file data, without another LLM call
+- returns a clear scan-level error (not a partial guide) if the one LLM call fails, using `LLM_SERVICE_ERROR` / `EXTERNAL_SERVICE_ERROR` (see `DECISIONS.md` > "One Combined Generation Call for the MVP, Five Tasks as a Stretch Goal")
+
+Once the five-separate-task stretch goal is built, also test that LemonBeam:
+
+- creates five primary section tasks, running in parallel
 - uses the correct prompt for each section
 - retrieves evidence separately for each section
 - makes one generation call per primary section
 - preserves the fixed section order
-- collects citations and uncertainties
-- assembles the sixth uncertainty section without another LLM call
-- handles one failed section task predictably
-
-The team must decide the expected behavior when one section task fails before implementing that test case.
+- collects citations and uncertainties from each task
+- handles one failed section task by returning the remaining sections normally and reporting the failed section as an uncertainty, not by failing the whole guide (see `DECISIONS.md` > "Skipped Files Are Not Fatal, and Are Reported")
 
 ### Citations
 
@@ -379,6 +388,7 @@ Test that:
 - cleanup does not delete the shared parent directory
 - database connections are closed before deletion
 - failed scans do not leave abandoned temporary data
+- `pipelineManager.ts` guarantees cleanup runs via try/finally regardless of which step in the scan failed
 
 ## Guide Evaluation Plan
 
@@ -594,7 +604,6 @@ The team still needs to finalize:
 - whether to use a browser end-to-end tool
 - the final test-directory layout
 - canonical test and coverage commands
-- whether failed section generation stops the whole guide or produces a partial result
 - whether guide evaluation uses pass/fail results, numeric scores, or both
 
 Once the team makes these decisions, update this document and record major reasoning in `DECISIONS.md`.

@@ -27,6 +27,8 @@ Related concepts belong in their owning documents:
 
 When the database design changes, update this document and `schema.sql` in the same pull request.
 
+**MVP status:** this schema is not implemented for the MVP. `scanService.ts` holds chunks and skipped-file records in memory for the lifetime of one request instead of writing them here — see `DECISIONS.md` > "In-Memory Chunk Storage for the MVP, SQLite as a Stretch Goal". This document remains the agreed design for when SQLite storage is built as a stretch goal.
+
 ## Database Role
 
 SQLite is a temporary structured workspace between repository analysis and guide generation.
@@ -268,6 +270,7 @@ Examples may include:
 ```text
 function
 method
+constructor
 class
 interface
 type

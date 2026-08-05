@@ -1,3 +1,10 @@
 -- SQLite schema placeholder.
--- This file will define the chunks table and any future tables LemonBeam needs
--- for scans, generated guide sections, or citation metadata.
+--
+-- NOT BUILT FOR THE MVP — see DECISIONS.md > "In-Memory Chunk Storage for
+-- the MVP, SQLite as a Stretch Goal". This is a stretch goal.
+--
+-- TODO (stretch goal): implement the three-table MVP schema
+-- (scan_metadata, files, chunks) exactly as specified in DATABASE.md >
+-- "Proposed MVP Schema", including the indexes listed in DATABASE.md >
+-- "Indexes". DATABASE.md is the source of truth for the exact SQL — don't
+-- redesign the schema here.

@@ -25,6 +25,7 @@ type ChunkKind =
   | "function"
   | "class"
   | "method"
+  | "constructor"
   | "arrow_function"
   | "type"
   | "interface"
@@ -56,12 +57,35 @@ type Chunk = {
   text: string;
 };
 
+/*
+  ChunkInput is the shared input shape every chunker (treeSitterChunker,
+  markdownChunker, configChunker, fallbackChunker) accepts, and the shape
+  chunkFile.ts is responsible for routing to the right one.
+
+  scanService.ts assembles this object for one file by combining:
+    - the file path from discoverFiles.ts
+    - the file's raw content, read once from disk
+    - the filePurpose and language assigned by classifyFile.ts
+
+  Every chunker takes one ChunkInput and returns Chunk[]. Keeping this shape
+  identical across chunkers is what lets chunkFile.ts stay a simple router
+  instead of special-casing arguments per chunker.
+*/
+type ChunkInput = {
+  scanId: string;
+  filePath: string;
+  content: string;
+  filePurpose: FilePurpose;
+  language: Language;
+};
+
 export type {
     FilePurpose,
     Parser,
     Language,
     ChunkKind,
-    Chunk
+    Chunk,
+    ChunkInput
 }
 
 /*
@@ -185,6 +209,7 @@ export type {
     chunkKind: "function"
     chunkKind: "class"
     chunkKind: "method"
+    chunkKind: "constructor"
     chunkKind: "interface"
     chunkKind: "type"
     chunkKind: "test_case"
