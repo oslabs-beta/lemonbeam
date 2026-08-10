@@ -17,6 +17,6 @@
 // Uses GitHub's REST API, authenticated with the shared GITHUB_TOKEN env
 // var (Authorization header) — see DECISIONS.md > "GitHub Access Uses a
 // Personal Access Token for Validation Calls". This is a normal shared
-// server credential, NOT per-user/BYOK like the OpenAI key, since it only
-// ever reads public data and costs nothing to use.
+// server credential, NOT per-user/BYOK like the OpenRouter key, since it
+// only ever reads public data and costs nothing to use.
 export {}

@@ -3,17 +3,23 @@ import LemonBeamLogo from "./components/LemonBeamLogo";
 
 function App() {
   const [url, setUrl] = useState("");
+  // NOTE: BYOK uses an OpenRouter API key, not an OpenAI key directly — see
+  // DECISIONS.md > "User-Supplied OpenRouter API Key (BYOK)".
   // TODO (BYOK): add const [apiKey, setApiKey] = useState("");
   // Render it as a type="password" input next to the repo URL input.
   // Never persist it (no localStorage/cookies) and never log it.
   // See PROJECT_BRIEF.md > User Flow and API_CONTRACT.md for the contract.
+  //
+  // Post-MVP stretch goal: a small dropdown for 3 LLM options, still routed
+  // through the same OpenRouter key — see PROJECT_BRIEF.md > "Multiple LLM
+  // Provider Options".
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!url.trim()) return;
     // TODO: wire this up to your backend once the pipeline endpoint exists.
-    // TODO (BYOK): include openaiApiKey in the POST /api/scans body:
-    //   { repositoryUrl: url.trim(), openaiApiKey: apiKey.trim() }
+    // TODO (BYOK): include openRouterApiKey in the POST /api/scans body:
+    //   { repositoryUrl: url.trim(), openRouterApiKey: apiKey.trim() }
     console.log("Submitted repo:", url.trim());
   }
 
