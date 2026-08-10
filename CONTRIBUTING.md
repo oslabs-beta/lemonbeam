@@ -12,28 +12,28 @@ For instructions specifically intended for AI coding agents, see `AGENTS.md`.
 
 LemonBeam uses a feature-branch workflow.
 
-Contributors should not make feature changes directly on `main` or `dev`.
+Contributors should not make feature changes directly on `main`.
 
 The normal workflow is:
 
 ```text
 Create an issue or choose a task
-→ create a branch from dev
+→ create a branch from main
 → make focused changes
 → commit the work
 → push the branch
-→ open a pull request into dev
+→ open a pull request into main
 → receive review
 → merge after approval
 ```
 
 ### Starting New Work
 
-Before creating a branch, update your local `dev` branch:
+Before creating a branch, update your local `main` branch:
 
 ```bash
-git switch dev
-git pull origin dev
+git switch main
+git pull origin main
 ```
 
 Create a new branch:
@@ -233,13 +233,13 @@ LLM-generated guide content must be based only on retrieved repository evidence.
 
 ## Before Opening a Pull Request
 
-Update your branch with the latest changes from `dev`:
+Update your branch with the latest changes from `main`:
 
 ```bash
-git switch dev
-git pull origin dev
+git switch main
+git pull origin main
 git switch <your-branch-name>
-git merge dev
+git merge main
 ```
 
 Resolve any merge conflicts before opening the pull request.
@@ -264,7 +264,7 @@ Use the commands currently defined in the repository’s `package.json` files. A
 
 ## Pull Request Process
 
-Open pull requests against the `dev` branch unless the team has agreed otherwise.
+Open pull requests against the `main` branch unless the team has agreed otherwise.
 
 The pull request title should follow Conventional Commits when practical.
 
@@ -375,8 +375,8 @@ Review comments should be clear, respectful, and focused on the code or design r
 After the pull request is merged:
 
 ```bash
-git switch dev
-git pull origin dev
+git switch main
+git pull origin main
 git branch -d <branch-name>
 ```
 
