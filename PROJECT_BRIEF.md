@@ -179,6 +179,7 @@ Citations appear within the relevant generated sections and are not counted as a
 - Markdown guide output
 - Source citations within generated sections
 - One combined generation task and one LLM call for the MVP, producing all five primary sections from a single general prompt
+- LLM access routed through OpenRouter using a single fixed OpenAI model; no user-facing model choice in the MVP
 - Programmatically assembled uncertainties section
 - Tree-sitter as one parsing method for supported JavaScript and TypeScript files
 - Markdown, configuration, heuristic, regex, and fallback strategies where appropriate
@@ -263,7 +264,7 @@ The challenge is to provide enough evidence for a useful answer without turning 
 
 ### 1. Submit a Repository
 
-The user enters the URL of a supported public GitHub repository and their own OpenAI API key, then submits both through the LemonBeam web application.
+The user enters the URL of a supported public GitHub repository and their own OpenRouter API key, then submits both through the LemonBeam web application.
 
 LemonBeam is bring-your-own-key (BYOK): the user's key is used only for that scan and is not stored by LemonBeam.
 
@@ -435,6 +436,10 @@ Detailed testing procedures, tools, test organization, and evaluation implementa
 ## Stretch Goals
 
 The following features are outside the MVP and may be considered after the MVP works end to end.
+
+### Multiple LLM Provider Options
+
+Add a small dropdown to the frontend letting the user choose from three LLM options for guide generation, instead of the MVP's single fixed OpenAI model. All options are still reached through the user's one OpenRouter API key (see `DECISIONS.md` > "User-Supplied OpenRouter API Key (BYOK)"), so this does not require collecting additional keys or adding new provider integrations. Planned as the first sprint after the MVP.
 
 ### Five Separate Section-Generation Tasks
 

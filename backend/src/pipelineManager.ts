@@ -7,7 +7,7 @@
 // See DECISIONS.md > "Thin Routes; `pipelineManager.ts` Sequences the Scan"
 // and ARCHITECTURE.md > "Express Backend" / "End-to-End Scan Lifecycle".
 //
-// TODO: export a function (e.g. runScan(repositoryUrl, openaiApiKey)) that:
+// TODO: export a function (e.g. runScan(repositoryUrl, openRouterApiKey)) that:
 //
 // 1. generates a unique scan ID
 // 2. calls utils/tempDirectory.ts to create this scan's isolated temp
@@ -19,12 +19,12 @@
 //    Size Limits for the MVP"), then identifies the default branch + commit
 //    SHA
 // 4. calls github/downloadSnapshot.ts to download the exact snapshot into
-//    the scan's temp directory
-//    OPEN QUESTION (#3, not yet decided): exact download mechanism — likely
-//    the GitHub REST API for validation calls + a separate tarball URL
-//    (codeload.github.com) for the actual download, to avoid burning the
-//    60/hr unauthenticated REST rate limit on the download itself. Confirm
-//    with the team before implementing.
+//    the scan's temp directory. Confirmed download mechanism: the GitHub
+//    REST API (authenticated with GITHUB_TOKEN) is used only for
+//    validateRepository.ts's checks; the actual download uses the
+//    unauthenticated codeload.github.com tarball URL, so it doesn't burn
+//    the 60/hr unauthenticated REST rate limit — see
+//    github/validateRepository.ts and github/downloadSnapshot.ts.
 // 5. calls scan/scanService.ts to discover, classify, and chunk the
 //    downloaded repository. scanService.ts returns both the produced chunks
 //    and a list of skipped files (path + reason) — see DECISIONS.md >
@@ -32,6 +32,12 @@
 //    For the MVP this is NOT written to SQLite — pass the returned
 //    { chunks, skippedFiles } straight into step 6 (see DECISIONS.md >
 //    "In-Memory Chunk Storage for the MVP, SQLite as a Stretch Goal").
+// ---- NEXT SPRINT, not this sprint (orchestration/generateGuide.ts does
+// not exist yet) — steps 6-9 below describe the eventual full pipeline so
+// the shape of this file doesn't have to be rewritten later, but THIS
+// SPRINT's runScan() should return right after step 5's
+// { chunks, skippedFiles }. Do not call generateGuide.ts or attempt to
+// return guide.markdown yet. ----
 // 6. calls orchestration/generateGuide.ts to generate the guide. For the
 //    MVP this is ONE combined LLM call producing all five primary sections
 //    (see DECISIONS.md > "One Combined Generation Call for the MVP, Five
@@ -40,8 +46,8 @@
 //    Information" section from it (no extra LLM call).
 // 7. wraps steps 2–6 in a try/finally block that calls utils/cleanup.ts no
 //    matter what happens — success, a thrown error at any step, or an
-//    OpenAI failure. Cleanup must run even when the scan fails.
-// 8. if the one MVP generation call fails outright (OpenAI error, rate
+//    OpenRouter failure. Cleanup must run even when the scan fails.
+// 8. if the one MVP generation call fails outright (OpenRouter error, rate
 //    limit, malformed output), the whole scan fails — there is no partial
 //    guide for the MVP. Return an error that routes/scans.ts can map to
 //    LLM_SERVICE_ERROR / EXTERNAL_SERVICE_ERROR (see API_CONTRACT.md). No

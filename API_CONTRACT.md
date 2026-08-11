@@ -59,7 +59,7 @@ Requests containing unexpected fields return `400 Bad Request` with the error co
 
 The frontend must never send GitHub tokens or other server secrets as part of a scan request.
 
-The one exception is the OpenAI API key: LemonBeam is bring-your-own-key (BYOK), so the user's own OpenAI API key is sent as part of the scan request. It is a transient, per-request credential rather than a server secret — the backend uses it only in memory for that single scan and must never log it, persist it, or echo it back in a response.
+The one exception is the OpenRouter API key: LemonBeam is bring-your-own-key (BYOK), so the user's own OpenRouter API key is sent as part of the scan request. It is a transient, per-request credential rather than a server secret — the backend uses it only in memory for that single scan and must never log it, persist it, or echo it back in a response.
 
 ## Error Response Format
 
@@ -113,7 +113,7 @@ POST /api/scans
 ```json
 {
   "repositoryUrl": "https://github.com/example/project",
-  "openaiApiKey": "sk-..."
+  "openRouterApiKey": "sk-or-..."
 }
 ```
 
@@ -122,7 +122,7 @@ POST /api/scans
 | Field | Type | Required | Description |
 |---|---|---:|---|
 | `repositoryUrl` | string | Yes | URL of the public GitHub repository to scan |
-| `openaiApiKey` | string | Yes | User-supplied OpenAI API key used only for this scan request |
+| `openRouterApiKey` | string | Yes | User-supplied OpenRouter API key used only for this scan request |
 
 ### Request Rules
 
@@ -136,12 +136,12 @@ POST /api/scans
 
 The backend validates repository support before downloading and analyzing the source snapshot.
 
-`openaiApiKey` must:
+`openRouterApiKey` must:
 
 - be a non-empty string
-- match the expected OpenAI API key format
+- match the expected OpenRouter API key format
 
-The backend validates the key's format before starting the scan, and validates the key itself (via the OpenAI API) before it is used for guide generation. The key is held in memory only for the lifetime of the request and is discarded once the scan completes or fails.
+The backend validates the key's format before starting the scan, and validates the key itself (via the OpenRouter API) before it is used for guide generation. The key is held in memory only for the lifetime of the request and is discarded once the scan completes or fails.
 
 ## Successful Response
 
@@ -254,8 +254,8 @@ Possible codes:
 - `INVALID_REQUEST_BODY`
 - `MISSING_REPOSITORY_URL`
 - `INVALID_REPOSITORY_URL`
-- `MISSING_OPENAI_API_KEY`
-- `INVALID_OPENAI_API_KEY`
+- `MISSING_OPENROUTER_API_KEY`
+- `INVALID_OPENROUTER_API_KEY`
 
 ## Repository Not Found
 
@@ -385,11 +385,11 @@ Possible codes:
 
 The response must not expose upstream API keys, raw provider responses, or sensitive server details.
 
-## OpenAI API Key Rejected
+## OpenRouter API Key Rejected
 
-Returned when the supplied `openaiApiKey` is well-formed but OpenAI rejects it — for example, an invalid, revoked, or expired key.
+Returned when the supplied `openRouterApiKey` is well-formed but OpenRouter rejects it — for example, an invalid, revoked, or expired key.
 
-This is distinct from `INVALID_OPENAI_API_KEY`, which covers a key that fails LemonBeam's own format check before any call is made to OpenAI.
+This is distinct from `INVALID_OPENROUTER_API_KEY`, which covers a key that fails LemonBeam's own format check before any call is made to OpenRouter.
 
 ### Status
 
@@ -403,7 +403,7 @@ This is distinct from `INVALID_OPENAI_API_KEY`, which covers a key that fails Le
 {
   "error": {
     "code": "LLM_AUTHENTICATION_FAILED",
-    "message": "The supplied OpenAI API key was rejected. Check that the key is valid and has available quota."
+    "message": "The supplied OpenRouter API key was rejected. Check that the key is valid and has available quota."
   }
 }
 ```
@@ -466,8 +466,8 @@ Internal errors must not expose:
 | Status | Meaning | Common error codes |
 |---:|---|---|
 | `200` | Scan completed and guide returned | — |
-| `400` | Invalid request body, repository URL, or API key format | `INVALID_REQUEST_BODY`, `MISSING_REPOSITORY_URL`, `INVALID_REPOSITORY_URL`, `MISSING_OPENAI_API_KEY`, `INVALID_OPENAI_API_KEY` |
-| `401` | OpenAI rejected the supplied API key | `LLM_AUTHENTICATION_FAILED` |
+| `400` | Invalid request body, repository URL, or API key format | `INVALID_REQUEST_BODY`, `MISSING_REPOSITORY_URL`, `INVALID_REPOSITORY_URL`, `MISSING_OPENROUTER_API_KEY`, `INVALID_OPENROUTER_API_KEY` |
+| `401` | OpenRouter rejected the supplied API key | `LLM_AUTHENTICATION_FAILED` |
 | `403` | Repository is not publicly accessible | `REPOSITORY_NOT_PUBLIC` |
 | `404` | Repository does not exist | `REPOSITORY_NOT_FOUND` |
 | `413` | Repository exceeds the supported size | `REPOSITORY_TOO_LARGE` |
@@ -482,8 +482,8 @@ Internal errors must not expose:
 
 The React frontend should:
 
-- send only the fields required by this contract (`repositoryUrl` and `openaiApiKey`)
-- collect the user's OpenAI API key through a masked input, similar to a password field
+- send only the fields required by this contract (`repositoryUrl` and `openRouterApiKey`)
+- collect the user's OpenRouter API key through a masked input, similar to a password field
 - never persist the API key beyond the active session (no `localStorage`, no cookies) and never log it
 - disable duplicate submissions while a scan request is active
 - handle non-`200` responses using the standard error shape
@@ -496,7 +496,7 @@ The React frontend should:
 
 The Express backend should:
 
-- validate the request body, including the `openaiApiKey` format
+- validate the request body, including the `openRouterApiKey` format
 - hold the user-supplied API key in memory only for the duration of the request
 - never log, persist, or return the API key in any response, including error responses
 - pass the key to the LLM provider for that request only

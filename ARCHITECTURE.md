@@ -36,7 +36,7 @@ The main components are:
 4. **Repository analyzer** — discovers files, classifies them by purpose, and chooses the appropriate parsing and chunking strategy.
 5. **SQLite scan workspace** — stores structured repository evidence and metadata for one scan.
 6. **Guide orchestration** — retrieves evidence for each guide section and coordinates section generation.
-7. **LLM provider** — generates each primary guide section from only the evidence selected for that section, using the OpenAI API key supplied by the user for that scan.
+7. **LLM provider** — generates each primary guide section from only the evidence selected for that section, using the OpenRouter API key supplied by the user for that scan. The MVP routes this through OpenRouter to a single fixed OpenAI model; letting the user pick among a few models is a stretch goal (see `PROJECT_BRIEF.md` > "Multiple LLM Provider Options").
 8. **Citation validation and guide assembly** — validates source references, combines the generated sections, and assembles uncertainty information.
 9. **Cleanup process** — deletes the downloaded repository, temporary SQLite database, and intermediate scan files.
 
@@ -102,14 +102,14 @@ The frontend is responsible for the user-facing workflow.
 It:
 
 - accepts a public GitHub repository URL
-- collects the user's OpenAI API key, required because LemonBeam is bring-your-own-key (BYOK)
+- collects the user's OpenRouter API key, required because LemonBeam is bring-your-own-key (BYOK)
 - sends the scan request, including the API key, to the Express backend
 - never persists the API key beyond the active session
 - displays scan progress or errors
 - displays the completed guide
 - allows the user to copy or download the generated output
 
-The frontend does not analyze repositories or call the LLM directly. The frontend collects the API key on the user's behalf, but only the backend uses it to talk to OpenAI.
+The frontend does not analyze repositories or call the LLM directly. The frontend collects the API key on the user's behalf, but only the backend uses it to talk to OpenRouter.
 
 Exact request and response formats belong in `API_CONTRACT.md`.
 
@@ -119,18 +119,18 @@ The Express backend is the entry point for the scanning workflow.
 
 It:
 
-- receives scan requests from the frontend, including the user-supplied OpenAI API key
+- receives scan requests from the frontend, including the user-supplied OpenRouter API key
 - generates a unique scan ID and creates that scan's isolated temporary workspace (via `utils/tempDirectory.ts`) immediately after request validation succeeds, before contacting GitHub
 - coordinates validation and repository download
 - runs repository discovery, classification, parsing, and chunking
 - stores chunks and metadata in SQLite
-- starts guide generation, passing the user-supplied API key to the LLM provider for that request only
+- starts guide generation, passing the user-supplied OpenRouter API key to the LLM provider for that request only
 - returns the completed guide
 - performs cleanup after success or failure
 
 `routes/scans.ts` itself stays thin: it validates the request and calls `pipelineManager.ts`, then turns the result into the HTTP response. `pipelineManager.ts` is the file that actually sequences everything above — scan-ID/workspace creation, GitHub validation and download, repository analysis, guide generation, and cleanup — wrapped in a try/finally so cleanup always runs, even if an earlier step fails (see `DECISIONS.md` > "Thin Routes; `pipelineManager.ts` Sequences the Scan").
 
-The API key is held in memory for the lifetime of the request only. It is never written to SQLite, logs, temporary files, or error responses.
+The OpenRouter API key is held in memory for the lifetime of the request only. It is never written to SQLite, logs, temporary files, or error responses.
 
 ### GitHub Integration
 
@@ -372,11 +372,12 @@ The model may vary the exact wording of a section, but it should not invent unsu
 
 #### API Key Sourcing
 
-LemonBeam is bring-your-own-key (BYOK). The OpenAI API key used for a scan comes from the request submitted by the user for that scan, not from a shared server-side credential.
+LemonBeam is bring-your-own-key (BYOK). The OpenRouter API key used for a scan comes from the request submitted by the user for that scan, not from a shared server-side credential.
 
-- The key is validated for format before the scan starts, and validated against OpenAI before it is used for generation.
+- The key is validated for format before the scan starts, and validated against OpenRouter before it is used for generation.
 - The key lives in memory only for the duration of the request that supplied it. It is never persisted to SQLite, written to logs, or returned in a response.
-- A server-side `OPENAI_API_KEY` environment variable may still exist for local development convenience, but hosted/production usage relies on the per-request user-supplied key.
+- A server-side `OPENROUTER_API_KEY` environment variable may still exist for local development convenience, but hosted/production usage relies on the per-request user-supplied key.
+- For the MVP, every request is routed to a single fixed OpenAI model through OpenRouter. Exposing a choice of models to the user is a stretch goal (see `PROJECT_BRIEF.md` > "Multiple LLM Provider Options").
 
 ### Citation Validation
 
@@ -541,6 +542,6 @@ To keep responsibilities clear:
 - The frontend does not call GitHub or the LLM directly.
 - The LLM does not receive the full repository.
 - Temporary scan data is not treated as permanent application data.
-- The user-supplied OpenAI API key is used only for the duration of one scan request and is never persisted, logged, or stored in SQLite.
+- The user-supplied OpenRouter API key is used only for the duration of one scan request and is never persisted, logged, or stored in SQLite.
 
 Changes to these boundaries should be recorded in `DECISIONS.md` and reflected here.

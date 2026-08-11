@@ -7,15 +7,10 @@
 // not one rule alone. Files with insufficient evidence should stay
 // "unknown" rather than being forced into the wrong category.
 //
-// OUTPUT SHAPE — OPEN QUESTION, resolve with the team before implementing:
-// types/chunk.ts's ChunkInput is { scanId, filePath, content, filePurpose,
-// language } and is meant to be the one shared shape every chunker takes.
-// But the already-merged configChunker.ts expects a different shape it
-// invented locally (ClassifiedFile: { scanId, filePath, purpose, language,
-// extension, content }) — note "purpose" not "filePurpose", plus an
-// "extension" field ChunkInput doesn't have. Before writing this file,
-// confirm with the team (and whoever owns chunkFile.ts / configChunker.ts)
-// whether this file should produce ChunkInput exactly, or whether
-// ChunkInput itself needs an "extension" field added in types/chunk.ts.
-// Do not silently invent a third shape.
+// OUTPUT SHAPE: produce types/chunk.ts's ChunkInput exactly —
+// { scanId, filePath, content, filePurpose, language }. Confirmed against
+// the merged chunkFile.ts/configChunker.ts, which both import ChunkInput
+// directly from types/chunk.ts and only read filePurpose/filePath/content
+// (configChunker.ts derives the file extension itself from filePath rather
+// than expecting it on the input). Do not invent a different shape.
 export {}
