@@ -80,13 +80,12 @@ function pushLongLineChunks(
     chunks: Chunk[],
     line: SourceLine,
 ): void {
-    for (
-        let startOffset = line.startOffset;
-        startOffset < line.endOffset;
-        startOffset += MAX_FALLBACK_CHUNK_CHARS
-    ) {
-        const endOffset = Math.min(
-            startOffset + MAX_FALLBACK_CHUNK_CHARS,
+    let startOffset = line.startOffset;
+
+    while (startOffset < line.endOffset) {
+        const endOffset = getChunkEndOffset(
+            input.content,
+            startOffset,
             line.endOffset,
         );
 
@@ -101,7 +100,30 @@ function pushLongLineChunks(
             endLine: line.lineNumber,
             text: input.content.slice(startOffset, endOffset),
         });
+
+        startOffset = endOffset;
     }
+}
+
+function getChunkEndOffset(
+    content: string,
+    startOffset: number,
+    lineEndOffset: number,
+): number {
+    const endOffset = Math.min(
+        startOffset + MAX_FALLBACK_CHUNK_CHARS,
+        lineEndOffset,
+    );
+
+    if (
+        endOffset < lineEndOffset &&
+        content[endOffset - 1] === "\r" &&
+        content[endOffset] === "\n"
+    ) {
+        return endOffset + 1;
+    }
+
+    return endOffset;
 }
 
 function pushChunkFromLines(
