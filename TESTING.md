@@ -45,20 +45,20 @@ LemonBeam’s tests should give the team confidence that:
 
 ## Testing Tools
 
-The exact testing libraries have not yet been finalized by the team.
+The team has selected **Vitest** as the test runner for the whole repository — both `backend` and `frontend`. It's installed as a root-level dependency (see the root `package.json`) and configured in the root `vitest.config.ts`.
 
-Do not add tool names to this document until the team has selected them and added them to the repository.
+Reasoning:
 
-The chosen tools must support the following needs:
+- The frontend already runs on Vite; Vitest shares its config and transform pipeline natively, so there's no separate TypeScript/JSX setup to maintain.
+- Both `backend/package.json` and `frontend/package.json` are pure ESM (`"type": "module"`). Vitest is ESM-native, avoiding the extra configuration Jest needs for ESM projects.
+- One tool covers TypeScript unit testing, mocking (`vi.mock`/`vi.fn`), Express route/API testing (calling handlers directly, or with `supertest`), React component testing (via Vitest's `jsdom`/`happy-dom` environment paired with React Testing Library, added when frontend tests are written), and built-in coverage reporting (`vitest run --coverage`).
 
-- TypeScript unit testing
-- mocking external services
-- Express route and API testing
-- React component testing
+See `DECISIONS.md` > "Vitest as the Test Runner; Root-Level Test Directory" for the full decision record.
+
+Still open:
+
 - browser or end-to-end testing, if the team chooses to include it
-- test coverage reporting, if the team chooses to track coverage
-
-Once tools are selected, document them here and add the actual dependencies and runnable commands to the relevant `package.json`.
+- whether/when to turn on coverage reporting in CI
 
 ## Test Commands
 
@@ -142,38 +142,38 @@ Guide evaluation should use unfamiliar supported JavaScript or TypeScript reposi
 
 ## Test Organization
 
-Tests should be organized by responsibility and test level.
-
-The exact test-directory names may be finalized when the team chooses its test tools, but the organization should follow these categories:
+Tests should be organized by responsibility and test level, in one root-level `tests/` directory shared by both `backend` and `frontend` — not split into separate top-level backend/frontend folders, since some categories (API and frontend tests) intentionally span both. This mirrors the categories below:
 
 ```text
-Unit tests
-├── scan and classification
-├── chunking
-├── database helpers
-├── orchestration helpers
-└── citation and uncertainty helpers
-
-Integration tests
-├── repository analysis pipeline
-├── SQLite storage and retrieval
-├── section generation
-├── guide assembly
-├── concurrent scan isolation
-└── cleanup
-
-API and frontend tests
-├── request validation
-├── status and error responses
-├── successful scan response
-├── frontend submission behavior
-└── guide display and download
-
-Guide evaluation
-├── repository fixtures or selected repositories
-├── generated guides
-└── evaluation notes
+tests/
+├── unit/
+│   ├── scan-and-classification/
+│   ├── chunking/
+│   ├── database-helpers/
+│   ├── orchestration/
+│   └── citation-and-uncertainty/
+├── integration/
+│   ├── repository-analysis-pipeline/
+│   ├── sqlite-storage-and-retrieval/
+│   ├── section-generation/
+│   ├── guide-assembly/
+│   ├── concurrent-scan-isolation/
+│   └── cleanup/
+├── api-and-frontend/
+│   ├── request-validation/
+│   ├── status-and-error-responses/
+│   ├── successful-scan-response/
+│   ├── frontend-submission-behavior/
+│   └── guide-display-and-download/
+└── guide-evaluation/
+    ├── fixtures/
+    ├── generated-guides/
+    └── evaluation-notes/
 ```
+
+Subfolders are created as the code they cover is built, rather than in advance — e.g. `unit/scan-and-classification/` currently only has `discoverFiles.test.ts`, since `classifyFile.ts` is still unimplemented; `integration/`, `api-and-frontend/`, and `guide-evaluation/` don't exist yet for the same reason.
+
+Within `unit/chunking/`, each chunking strategy gets its own test file, per "Test each strategy separately" above: `chunkFile.test.ts` (router/selection logic), `treeSitterChunker.test.ts`, `treeSitterTestChunker.test.ts`, `markdownChunker.test.ts`, `configChunker.test.ts`, `fallbackChunker.test.ts`.
 
 Tests should mirror the responsibilities defined in `ARCHITECTURE.md`.
 
@@ -595,14 +595,12 @@ The pull-request format and general workflow belong in `CONTRIBUTING.md`.
 
 ## Open Testing Decisions
 
+Resolved: the TypeScript test runner (Vitest, also covering React component and Express/API testing — see "Testing Tools" above) and the test-directory layout (see "Test Organization" above).
+
 The team still needs to finalize:
 
-- the TypeScript test runner
-- the React component-testing tool
-- the Express/API testing tool
 - whether to use a browser end-to-end tool
-- the final test-directory layout
-- canonical test and coverage commands
+- canonical coverage command and whether coverage is tracked in CI
 - whether guide evaluation uses pass/fail results, numeric scores, or both
 
 Once the team makes these decisions, update this document and record major reasoning in `DECISIONS.md`.
