@@ -169,6 +169,25 @@ These numbers are a starting point for the MVP, not a permanent ceiling, and may
 
 ---
 
+## Skip All Symlinks for the MVP
+
+### Decision
+
+`scan/discoverFiles.ts` skips every symlink it encounters while walking a downloaded repository, whether it points to a file or a directory.
+
+### Reasons
+
+- A symlink's target can point anywhere on disk, including outside the repository root (e.g. an absolute path or a `..`-relative path). Following it risks reading and returning content that isn't actually part of the scanned repository.
+- A symlinked directory that points back at one of its own ancestors would make the discovery walk recurse forever.
+- Distinguishing a "safe" symlink (one whose target stays inside the repository root) from an unsafe one requires resolving the real path and comparing it against the root, plus cycle detection for directories — real complexity for what's expected to be a rare case in most repositories.
+
+### Consequences
+
+- Legitimate in-repo symlinks (e.g. a shared config file symlinked across packages in a monorepo) are silently excluded from analysis for the MVP; the contributor guide may be missing evidence that lived only behind a symlink.
+- If this turns out to matter in practice, a future version could resolve symlink targets and include ones that stay within the repository root, with cycle detection for directories.
+
+---
+
 ## Default Branch and Exact Commit Identification
 
 ### Decision
@@ -633,6 +652,30 @@ Other documents should reference that source of truth rather than repeat the sam
 - `CONTRIBUTING.md` owns contribution practices.
 - `AGENTS.md` owns AI-agent behavior.
 - This file owns the reasons behind major decisions.
+
+---
+
+## Vitest as the Test Runner; Root-Level Test Directory
+
+### Decision
+
+Vitest is the test runner for the whole repository, covering both `backend` and `frontend`. It's installed as a single root-level dependency and configured via a root `vitest.config.ts`, rather than as separate per-package test setups.
+
+Tests live in one root-level `tests/` directory, organized by test level (`unit/`, `integration/`, `api-and-frontend/`, `guide-evaluation/`) rather than split into top-level `backend/`/`frontend/` folders, matching the categories already described in `TESTING.md` > "Test Organization." Subfolders and test files are added as the code they cover is implemented, not scaffolded in advance for unbuilt features.
+
+### Reasons
+
+- The frontend already runs on Vite; Vitest reuses its config and transform pipeline natively, avoiding a separate TypeScript/JSX test setup.
+- Both `backend/package.json` and `frontend/package.json` are pure ESM (`"type": "module"`). Vitest is ESM-native; Jest's ESM support requires extra configuration that adds friction for this stack.
+- One tool serves TypeScript unit tests, mocking, Express route/API tests, React component tests (via Vitest's `jsdom`/`happy-dom` environment with React Testing Library), and coverage reporting, reducing what the team has to maintain and learn.
+- `TESTING.md`'s own "Test Organization" section already groups tests by responsibility/level rather than by package — e.g. "API and Frontend Tests" is one combined category — so a single shared root directory matches the structure that was already documented, rather than introducing a new one.
+- Creating empty placeholder folders for untested, unimplemented code (e.g. `classifyFile.ts`, orchestration, SQLite storage) would be misleading and wouldn't persist in git anyway, since git doesn't track empty directories.
+
+### Consequences
+
+- `package.json` (root) gains `vitest` as a devDependency and `test` / `test:watch` scripts; root `package.json` also now declares `"type": "module"`.
+- `TESTING.md`'s "Testing Tools," "Test Organization," and "Open Testing Decisions" sections are updated to reflect this decision.
+- Remaining open testing decisions (browser/e2e tooling, coverage-in-CI, guide-evaluation scoring) are unaffected and still need the team's input.
 
 ---
 
