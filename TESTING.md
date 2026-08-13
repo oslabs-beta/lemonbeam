@@ -218,8 +218,7 @@ Tests should not require real API keys unless the team explicitly creates a sepa
 Live-service testing must never expose or commit:
 
 - GitHub tokens
-- OpenAI API keys
-- Anthropic API keys
+- OpenRouter API keys
 - private repository data
 
 ## Required Backend Coverage

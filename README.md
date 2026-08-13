@@ -79,7 +79,7 @@ The generated guide includes:
 - SQLite
 - Tree-sitter
 - GitHub API
-- OpenAI or Anthropic API
+- OpenRouter API (BYOK)
 
 ---
 

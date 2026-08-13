@@ -135,7 +135,7 @@ Downloading the actual repository snapshot does not use this token, or the REST 
 ### Reasons
 
 - GitHub's REST API allows only 60 requests/hour to unauthenticated callers — shared across the whole team while testing, that's easy to hit. A token, even with zero scopes selected, raises this to 5,000 requests/hour.
-- Unlike the OpenAI key, this costs LemonBeam nothing and only ever reads public data, so one shared server-side token is appropriate — this is not a BYOK/per-user credential.
+- Unlike the OpenRouter key, this costs LemonBeam nothing and only ever reads public data, so one shared server-side token is appropriate — this is not a BYOK/per-user credential.
 - The download step doesn't need this token at all, since the tarball URL is a plain file download, not a rate-limited API call.
 
 ### Consequences
@@ -143,7 +143,7 @@ Downloading the actual repository snapshot does not use this token, or the REST 
 - `GITHUB_TOKEN` is added to `backend/.env.example` as a placeholder; the real value goes only in each developer's own untracked `.env`.
 - `github/validateRepository.ts` attaches this token as an `Authorization` header on its GitHub API calls.
 - `github/downloadSnapshot.ts` does not use this token.
-- This token must never be logged, committed, or exposed in an error response — same rule as the OpenAI key, though this one is a shared server credential, not a per-request user-supplied one.
+- This token must never be logged, committed, or exposed in an error response — same rule as the OpenRouter key, though this one is a shared server credential, not a per-request user-supplied one.
 
 ---
 
@@ -433,7 +433,7 @@ Splitting this into five independent tasks, each with its own retrieval pass, it
 
 - Retrieval must still gather evidence across all five topic areas before the one call, even though it is handed to a single prompt instead of five.
 - A single call bundling every section's evidence is one point of latency/cost risk rather than five smaller ones; there is no longer anything to run in parallel for the MVP call.
-- If the one MVP call fails (rate limit, malformed output, OpenAI error), the whole guide generation fails for that scan — there is no partial-success case at the section level the way five independent tasks would allow. This is returned to the frontend using the existing `LLM_SERVICE_ERROR` / `EXTERNAL_SERVICE_ERROR` codes already defined in `API_CONTRACT.md`; no new error code or retry mechanism is required for the MVP.
+- If the one MVP call fails (rate limit, malformed output, OpenRouter error), the whole guide generation fails for that scan — there is no partial-success case at the section level the way five independent tasks would allow. This is returned to the frontend using the existing `LLM_SERVICE_ERROR` / `EXTERNAL_SERVICE_ERROR` codes already defined in `API_CONTRACT.md`; no new error code or retry mechanism is required for the MVP.
 - Debugging or tuning the single prompt is expected to be harder than tuning five narrow ones, since a change intended to fix one section's output can affect how the others read. This tradeoff was made knowingly to fit the MVP timeline.
 - When the five-task stretch goal is built, each task should run **in parallel** (e.g. via `Promise.allSettled`, not `Promise.all`) rather than sequentially, so one failed section does not cancel the other four — consistent with "Skipped Files Are Not Fatal, and Are Reported."
 
@@ -502,13 +502,15 @@ When evidence is missing or unclear, LemonBeam reports uncertainty rather than g
 
 ---
 
-## User-Supplied OpenAI API Key (BYOK)
+## User-Supplied OpenRouter API Key (BYOK)
 
 ### Decision
 
-LemonBeam requires the user to supply their own OpenAI API key with each scan request rather than using a shared server-side key.
+LemonBeam requires the user to supply their own OpenRouter API key with each scan request rather than using a shared server-side key or requiring a direct OpenAI key.
 
 The backend uses the supplied key only in memory for that single request. It is never stored, logged, or returned in a response.
+
+For the MVP, the backend routes every request through OpenRouter to a single fixed OpenAI model — there is no user-facing model choice yet. Letting the user pick from a small set of LLM options through OpenRouter is a stretch goal (see `PROJECT_BRIEF.md` > "Multiple LLM Provider Options").
 
 ### Reasons
 
@@ -516,19 +518,21 @@ The backend uses the supplied key only in memory for that single request. It is 
 - A shared server-side key has no natural per-user limit and could be exhausted or abused by anonymous traffic.
 - Avoiding key storage keeps the MVP free of the encryption-at-rest, rotation, and account-security work a stored-credential model would require.
 - Passing the key through per request keeps the existing "No User Accounts or Saved Scan History" decision intact — no key-management UI or database is needed.
+- Routing through OpenRouter instead of calling OpenAI directly means the post-MVP model-choice dropdown only needs one BYOK credential and one provider integration, rather than a separate key and integration per LLM provider.
 
 ### Alternatives Considered
 
 - **Storing an encrypted key per user account** — rejected. It reintroduces the account and persistence scope explicitly excluded by "No User Accounts or Saved Scan History."
 - **Calling OpenAI directly from the frontend** — rejected. It contradicts the "frontend does not call GitHub or the LLM directly" architectural boundary and would remove server-side prompt construction and citation validation.
+- **Requiring a direct OpenAI API key instead of an OpenRouter key** — rejected. It would work for the MVP's single fixed model, but would require asking users for a different key (and adding a separate provider integration) once the "Multiple LLM Provider Options" stretch goal adds other models.
 
 ### Consequences
 
-- The scan request body includes `openaiApiKey`. Exact request and error shapes belong in `API_CONTRACT.md`.
+- The scan request body includes `openRouterApiKey`. Exact request and error shapes belong in `API_CONTRACT.md`.
 - The frontend collects the key through a masked input and must not persist it beyond the active session.
 - The backend must never write the key to logs, SQLite, temporary files, or error responses.
-- A missing, malformed, or OpenAI-rejected key returns a specific error so the frontend can prompt the user to fix it, rather than a generic external-service failure.
-- A server-side `OPENAI_API_KEY` environment variable may remain as a local-development fallback but must not be relied on for hosted/production usage.
+- A missing, malformed, or OpenRouter-rejected key returns a specific error so the frontend can prompt the user to fix it, rather than a generic external-service failure.
+- A server-side `OPENROUTER_API_KEY` environment variable may remain as a local-development fallback but must not be relied on for hosted/production usage.
 
 ---
 

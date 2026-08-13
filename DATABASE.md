@@ -600,8 +600,7 @@ Adding tables for those values should happen only if the implementation develops
 The database must never store:
 
 - GitHub tokens
-- OpenAI API keys
-- Anthropic API keys
+- OpenRouter API keys
 - environment-variable secrets
 - private repository credentials
 
