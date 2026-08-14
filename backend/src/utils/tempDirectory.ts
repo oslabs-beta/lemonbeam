@@ -11,7 +11,7 @@
 // Routes; `pipelineManager.ts` Sequences the Scan" and ARCHITECTURE.md >
 // "Express Backend").
 //
-// TODO: export a function that, given a scan ID, creates and returns a
+// Exports a function that, given a scan ID, creates and returns a
 // unique temp directory path (e.g. under the OS temp dir), something like
 // /tmp/lemonbeam/{scanId}/, for the downloaded repository snapshot and
 // (later, if #8 says yes) that scan's SQLite database file to live in.
