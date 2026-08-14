@@ -13,7 +13,6 @@ app.use(express.json());
 // ---- ROUTES GO HERE, before the 404 and error handler ----
 // Controllers should set res.locals.status / res.locals.data
 // and call next() instead of sending a response directly.
-// app.use("/api/scan", scanRouter);
 app.use("/api", scanRouter);
 
 app.get("/api/health", (_req: Request, res: Response, next: NextFunction) => {

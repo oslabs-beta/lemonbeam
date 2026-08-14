@@ -54,7 +54,7 @@ router.post(
             return next();
         }
 
-        const { repositoryUrl, openRouterApiKey } = req.body;
+        const { repositoryUrl } = req.body as { repositoryUrl: string };
 
         res.locals.status = 200;
         res.locals.data = {
@@ -84,5 +84,5 @@ router.post(
         }
     },
 );
-// export {router as ScanRouter}
+
 export const scanRouter = router;
