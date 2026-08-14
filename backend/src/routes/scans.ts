@@ -32,4 +32,57 @@
 // - openRouterApiKey passes through this route only in memory — never log it,
 //   never write it to SQLite, never include it in a response, including
 //   error responses
-export {}
+import { Router, Request, Response, NextFunction } from "express";
+import { validateScanRequest } from "../utils/validateScanRequest.js";
+
+const router = Router();
+
+router.post(
+    "/scans",
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        try {
+        const validation = validateScanRequest(req.body);
+        if (!validation.isValid) {
+            res.locals.status = validation.status || 400;
+            res.locals.data = {
+            error: {
+                code: validation.code || "INVALID_REQUEST_BODY",
+                message: validation.message || "Invalid request.",
+                ...(validation.details && { details: validation.details }),
+            },
+            };
+            return next();
+        }
+
+        const { repositoryUrl } = req.body as { repositoryUrl: string };
+
+        res.locals.status = 200;
+        res.locals.data = {
+            scanId: "scan_placeholder",
+            repository: {
+            name: "project",
+            owner: "example",
+            url: repositoryUrl,
+            defaultBranch: "main",
+            commitSha: "a84f32c",
+            },
+            guide: {
+            markdown:
+                "# Project Overview\n\nScan pipeline initialized successfully.",
+            },
+        };
+        return next();
+        } catch (error) {
+        res.locals.status = 500;
+        res.locals.data = {
+            error: {
+            code: "INTERNAL_ERROR",
+            message: "LemonBeam could not complete the scan.",
+            },
+        };
+        return next();
+        }
+    },
+);
+
+export const scanRouter = router;
