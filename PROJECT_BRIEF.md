@@ -219,7 +219,7 @@ The challenge is to create chunks that are small enough to retrieve efficiently 
 
 Repositories do not all follow the same folder, filename, test, or configuration conventions.
 
-LemonBeam uses multiple deterministic signals rather than relying on one rule. Signals may include:
+LemonBeam uses multiple deterministic signals rather than relying on one rule. For the MVP, signals are limited to:
 
 - folder patterns
 - filename patterns
@@ -227,8 +227,9 @@ LemonBeam uses multiple deterministic signals rather than relying on one rule. S
 - package scripts
 - installed dependencies
 - configuration files
-- limited content patterns
 - relationships between nearby files
+
+Limited content-pattern signals (inspecting a file's own text, not just its path) are deferred to a stretch goal — see `DECISIONS.md` > "Path-Based Classification for the MVP, Content-Pattern Signals as a Stretch Goal" for the reasoning and what building them later would require.
 
 Files with insufficient evidence should remain uncategorized rather than being forced into an incorrect category.
 

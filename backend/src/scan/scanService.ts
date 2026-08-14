@@ -10,10 +10,18 @@
 //    worth analyzing (already excludes node_modules, .git, build output,
 //    binaries, and anything over the MVP's ~1MB per-file cap — see
 //    DECISIONS.md > "Repository Size Limits for the MVP")
-// 2. call scan/classifyFile.ts on each discovered file to get its
-//    filePurpose/language (producing a ChunkInput-shaped object — see
-//    types/chunk.ts). Confirmed against the merged chunkFile.ts/
-//    configChunker.ts, which both consume ChunkInput as-is.
+// 1a. before the per-file loop starts, read and parse package.json ONCE —
+//    not per file. Reuse that same parsed object, plus the full file list
+//    from step 1, on every classifyFile call in step 2 (see DECISIONS.md >
+//    "Path-Based Classification for the MVP, Content-Pattern Signals as a
+//    Stretch Goal"). Re-reading/re-parsing package.json inside the loop
+//    would repeat identical, unchanging work once per discovered file.
+// 2. call scan/classifyFile.ts on each discovered file — passing that
+//    file's path, the full discovered-file list (for nearby-file checks),
+//    and the package.json object from step 1a — to get its filePurpose/
+//    language (producing a ChunkInput-shaped object — see types/chunk.ts).
+//    Confirmed against the merged chunkFile.ts/configChunker.ts, which both
+//    consume ChunkInput as-is.
 // 3. call chunking/chunkFile.ts (the router) on each classified file to get
 //    back Chunk[] for that file
 // 4. if a file's chunker reports failure (e.g. configChunker's

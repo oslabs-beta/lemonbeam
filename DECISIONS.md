@@ -305,6 +305,47 @@ Files with insufficient evidence remain uncategorized rather than being forced i
 
 ---
 
+## Path-Based Classification for the MVP, Content-Pattern Signals as a Stretch Goal
+
+### Decision
+
+For the MVP, `classifyFile.ts` classifies a file using only signals derived from its path, plus two pieces of pre-gathered repository context that `scanService.ts` passes in:
+
+- the file's own relative path (directory segments, filename, extension)
+- the parsed `package.json` (`scripts`, `dependencies`, `devDependencies`) — read and parsed **once** by `scanService.ts` before its file loop, then passed into every `classifyFile` call, not re-read per file
+- the full list of discovered file paths from `discoverFiles.ts` — for relationship checks like "is there a sibling `Foo.test.ts` next to `Foo.ts`"
+
+`classifyFile.ts` does not read or inspect the content of the file it is classifying. `ARCHITECTURE.md` and `PROJECT_BRIEF.md` previously listed "limited content patterns" as one of the classification signals; this decision formally narrows that for the MVP and defers it below.
+
+### Reasons
+
+- Path, filename, and extension signals alone correctly classify the large majority of real-world repositories, because most projects already follow naming conventions (`*.test.ts`, `docs/`, `tsconfig.json`, a `types/` directory, and so on).
+- Content-based signals require every file's content to be available at classify time, not just at chunk time. Today's planned order in `scanService.ts` only reads a file's content once, right before chunking (see `types/chunk.ts`'s `ChunkInput` comment); adding content-based classification would move that read earlier and needs deliberate sequencing, not just new rule code.
+- Content-based rules carry real false-positive risk and a bigger test surface than naming rules — for example, a "type-only file" check must not trip on a file that has one `interface` and one helper function, so every content rule needs both a true-positive and a near-miss fixture, not just one fixture per naming convention.
+- Keeping `classifyFile.ts` a pure function of `(filePath, allFilePaths, packageJson)` keeps it easy to unit test with plain string/object fixtures, matching `TESTING.md`'s framing of classification as testing "deterministic signals."
+
+### Consequences
+
+- `classifyFile.ts`'s signature is `classifyFile(filePath: string, allFilePaths: string[], packageJson: Record<string, unknown> | null): { filePurpose: FilePurpose; language: Language }` — no file-content parameter.
+- A file whose purpose can only be determined by reading its own content (for example, a `.ts` file containing only `interface`/`type` declarations, not named `*.types.ts` and not sitting in a `types/` directory) will fall back to `unknown` for the MVP rather than being correctly classified as `types`. This is an accepted MVP gap, not a bug.
+- `ARCHITECTURE.md` and `PROJECT_BRIEF.md`'s classification signal lists are updated to match (content patterns removed, cross-referenced here).
+
+### Stretch Goal: Adding Content-Pattern Signals Later
+
+Building this out later requires more than adding a new rule function. In order:
+
+1. **Make content available at classify time.** `scanService.ts` would need to read each file's content before calling `classifyFile`, not only before calling the chunker. The same content can still be reused for chunking afterward — this doesn't necessarily mean reading a file twice — but the *ordering guarantee* changes, and anything currently assuming classification only needs a path would need to be revisited.
+2. **Define the specific "limited" content rules precisely**, for example:
+   - Type-only detection: the file contains one or more top-level `interface`/`type` declarations and zero runtime constructs (no `function` declarations, no `class`, no top-level executable statements).
+   - Shebang detection: a `#!...` first line, flagging a script even without a `.sh` extension or `scripts/` directory.
+   - Test-framework import detection: an `import`/`require` of `vitest`/`jest`/etc., catching a test file that doesn't follow `*.test.*`/`*.spec.*` naming.
+3. **Decide signal precedence.** When a content signal and a path signal disagree, does content override, only apply when path is inconclusive, or just nudge a confidence score? This needs an explicit rule, not implicit code ordering.
+4. **Build real confidence scoring.** `DATABASE.md` already reserves an optional `classification_score REAL` column (0–1) for this, but nothing currently computes it. Combining multiple signals into an actual score (rather than a path-only decision tree) is what would make that column meaningful instead of permanently empty.
+5. **Expand test fixtures.** `tests/unit/scan-and-classification/classifyFile.test.ts` would need true-positive and near-miss fixtures for each new content rule, per "Reasons" above.
+6. **Restore the signal in the docs.** Once built, `classifyFile.ts`'s signature, `ARCHITECTURE.md`, and `PROJECT_BRIEF.md` all get updated again to include content patterns as a live MVP signal rather than a deferred one.
+
+---
+
 ## Rule-Based Retrieval Instead of Vector Search
 
 ### Decision

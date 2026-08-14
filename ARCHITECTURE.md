@@ -192,7 +192,7 @@ Possible purposes include:
 - types
 - unknown
 
-Classification uses multiple deterministic signals rather than relying on one filename or folder rule. These signals may include paths, filenames, extensions, package scripts, dependencies, configuration files, limited content patterns, and relationships between nearby files.
+Classification uses multiple deterministic signals rather than relying on one filename or folder rule. For the MVP, these signals are limited to paths, filenames, extensions, configuration files, package scripts and dependencies (read once by `scanService.ts` and passed in, not re-read per file), and relationships between nearby files. `classifyFile.ts` does not read the content of the file it is classifying — see `DECISIONS.md` > "Path-Based Classification for the MVP, Content-Pattern Signals as a Stretch Goal" for why content-pattern signals are deferred and what building them later would require.
 
 Low-confidence files should remain unknown rather than being forced into an incorrect category.
 
