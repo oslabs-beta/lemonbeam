@@ -1,4 +1,5 @@
 import express, { Request, Response, NextFunction } from "express";
+import { scanRouter } from "./routes/scans.js";
 
 // This file builds and configures the Express app — middleware, routes,
 // the 404 handler, the error handler. Nothing here ever starts a real
@@ -13,6 +14,7 @@ app.use(express.json());
 // Controllers should set res.locals.status / res.locals.data
 // and call next() instead of sending a response directly.
 // app.use("/api/scan", scanRouter);
+app.use("/api", scanRouter);
 
 app.get("/api/health", (_req: Request, res: Response, next: NextFunction) => {
   res.locals.status = 200;
