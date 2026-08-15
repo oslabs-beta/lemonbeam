@@ -97,11 +97,7 @@ function isDocsFile(filePath: string): boolean {
 // Runs the checks above in priority order (test > config > types >
 // scripts > docs), then falls back to "source" for JS/TS files or
 // "unknown" for everything else.
-function detectPurpose(
-    filePath: string,
-    packageJson: Record<string, unknown> | null,
-    language: Language
-): FilePurpose {
+function detectPurpose(filePath: string, language: Language): FilePurpose {
     if (isTestFile(filePath)) return "test";
     if (isConfigFile(filePath)) return "config";
     if (isTypesFile(filePath)) return "types";
@@ -112,15 +108,10 @@ function detectPurpose(
 }
 
 // Public entry point: combines detectLanguage + detectPurpose into the
-// result scanService.ts consumes. allFilePaths is accepted but unused
-// today (reserved for future cross-file signals).
-function classifyFile(
-    filePath: string,
-    allFilePaths: string[],
-    packageJson: Record<string, unknown> | null
-): { filePurpose: FilePurpose; language: Language } {
+// result scanService.ts consumes.
+function classifyFile(filePath: string): { filePurpose: FilePurpose; language: Language } {
     const language = detectLanguage(filePath);
-    const filePurpose = detectPurpose(filePath, packageJson, language);
+    const filePurpose = detectPurpose(filePath, language);
     return { filePurpose, language };
 }
 
