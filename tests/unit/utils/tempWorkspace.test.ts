@@ -50,6 +50,18 @@ describe("temp workspace utilities", () => {
         expect(await exists(workspace.repositoryDirectory)).toBe(true);
         expect(workspace.repositoryDirectory).toBe(join(workspace.scanDirectory, "repository"));
     });
+    
+    it("refuses to create the shared lemonbeam temp parent", async () => {
+        await expect(createTempDirectory("")).rejects.toThrow(
+            "Refusing to create directory outside the scan temp workspace",
+        );
+    });
+
+    it("refuses to create paths outside the lemonbeam temp workspace", async () => {
+        await expect(createTempDirectory("../outside-lemonbeam")).rejects.toThrow(
+            "Refusing to create directory outside the scan temp workspace",
+        );
+    });
 
     it("deletes the scan directory", async () => {
         const workspace = await createTestWorkspace();
