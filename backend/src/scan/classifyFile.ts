@@ -33,7 +33,7 @@ function isTestFile(filePath: string): boolean {
         return true;
     }
 
-    const segments = filePath.split(path.sep);
+    const segments = filePath.split(/[\\/]/);
     return segments.some(
         (segment) => segment === "test" || segment === "tests" || segment === "__tests__"
     );
