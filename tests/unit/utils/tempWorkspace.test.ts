@@ -47,9 +47,8 @@ describe("temp workspace utilities", () => {
     it("creates the repository directory inside the scan directory", async () => {
         const workspace = await createTestWorkspace();
 
-        expect(await exists(workspace.repositoryDirectory)).toBe(true); 
-        expect(workspace.repositoryDirectory).toBe(join(workspace.scanDirectory, "repository"),);
-
+        expect(await exists(workspace.repositoryDirectory)).toBe(true);
+        expect(workspace.repositoryDirectory).toBe(join(workspace.scanDirectory, "repository"));
     });
 
     it("deletes the scan directory", async () => {
