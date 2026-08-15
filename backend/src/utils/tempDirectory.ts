@@ -11,8 +11,38 @@
 // Routes; `pipelineManager.ts` Sequences the Scan" and ARCHITECTURE.md >
 // "Express Backend").
 //
-// TODO: export a function that, given a scan ID, creates and returns a
+// Exports a function that, given a scan ID, creates and returns a
 // unique temp directory path (e.g. under the OS temp dir), something like
 // /tmp/lemonbeam/{scanId}/, for the downloaded repository snapshot and
 // (later, if #8 says yes) that scan's SQLite database file to live in.
-export {}
+import { mkdir } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, relative, resolve, sep } from "node:path";
+
+type TempWorkspace = {
+  scanDirectory: string;
+  repositoryDirectory: string;
+};
+
+async function createTempDirectory(scanId: string): Promise<TempWorkspace> {
+  const lemonbeamTempRoot = resolve(tmpdir(), "lemonbeam");
+  const scanDirectory = resolve(lemonbeamTempRoot, scanId);
+  const relativePath = relative(lemonbeamTempRoot, scanDirectory);
+
+  if (
+    relativePath === "" ||
+    relativePath === ".." ||
+    relativePath.startsWith(`..${sep}`)
+  ) {
+    throw new Error("Refusing to create directory outside the scan temp workspace");
+  }
+
+  const repositoryDirectory = join(scanDirectory, "repository");
+
+  await mkdir(repositoryDirectory, { recursive: true });
+
+  return { scanDirectory, repositoryDirectory };
+}
+
+export { createTempDirectory };
+export type { TempWorkspace };

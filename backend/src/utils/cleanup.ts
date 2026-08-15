@@ -12,4 +12,27 @@
 // the scan succeeded or failed at any step (see DECISIONS.md > "Thin
 // Routes; `pipelineManager.ts` Sequences the Scan"). Close any open SQLite
 // connection before deleting the database file.
-export {}
+
+import { rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { relative, resolve, sep } from "node:path";
+
+async function cleanupTempDirectory(scanDirectory: string): Promise<void> {
+    const lemonbeamTempRoot = resolve(tmpdir(), "lemonbeam");
+    const targetDirectory = resolve(scanDirectory); 
+    const relativePath = relative(lemonbeamTempRoot, targetDirectory);
+
+    if (
+        relativePath === "" ||
+        relativePath === ".." ||
+        relativePath.startsWith(`..${sep}`)
+    ) {
+        throw new Error("Refusing to clean up directory outside the scan temp workspace");
+    }
+
+    await rm(targetDirectory, {
+        recursive: true,
+        force: true,
+    });
+}
+export { cleanupTempDirectory };
