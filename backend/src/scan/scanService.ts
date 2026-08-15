@@ -10,10 +10,11 @@
 //    worth analyzing (already excludes node_modules, .git, build output,
 //    binaries, and anything over the MVP's ~1MB per-file cap — see
 //    DECISIONS.md > "Repository Size Limits for the MVP")
-// 2. call scan/classifyFile.ts on each discovered file to get its
-//    filePurpose/language (producing a ChunkInput-shaped object — see
-//    types/chunk.ts). Confirmed against the merged chunkFile.ts/
-//    configChunker.ts, which both consume ChunkInput as-is.
+// 2. call scan/classifyFile.ts on each discovered file — passing only
+//    that file's path — to get its filePurpose/language (producing a
+//    ChunkInput-shaped object — see types/chunk.ts). Confirmed against
+//    the merged chunkFile.ts/configChunker.ts, which both consume
+//    ChunkInput as-is.
 // 3. call chunking/chunkFile.ts (the router) on each classified file to get
 //    back Chunk[] for that file
 // 4. if a file's chunker reports failure (e.g. configChunker's
