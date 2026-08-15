@@ -329,6 +329,13 @@ For the MVP, `classifyFile.ts` classifies a file using only signals derived from
 - `classifyFile.ts`'s signature is `classifyFile(filePath: string, allFilePaths: string[], packageJson: Record<string, unknown> | null): { filePurpose: FilePurpose; language: Language }` — no file-content parameter.
 - A file whose purpose can only be determined by reading its own content (for example, a `.ts` file containing only `interface`/`type` declarations, not named `*.types.ts` and not sitting in a `types/` directory) will fall back to `unknown` for the MVP rather than being correctly classified as `types`. This is an accepted MVP gap, not a bug.
 - `ARCHITECTURE.md` and `PROJECT_BRIEF.md`'s classification signal lists are updated to match (content patterns removed, cross-referenced here).
+- `isScriptsFile` in `classifyFile.ts` only checks whether the file lives in a `scripts/` directory. It no longer also checks whether `package.json`'s `scripts` section has a command string that references the file's path (e.g. `"build": "node build.js"` matching a root-level `build.js`). That second check existed briefly during implementation and was removed as unnecessary complexity for the MVP — see "Post-MVP: Restore package.json Script-Command Matching" below.
+
+### Post-MVP: Restore package.json Script-Command Matching
+
+`isScriptsFile` originally also matched a file against `package.json`'s `scripts` section by checking if any script command string contained the file's path — catching files like a root-level `build.js` referenced by `"build": "node build.js"` that aren't inside a `scripts/` directory. This was removed for the MVP: the directory check alone covers the common case (most repositories put build/utility scripts under `scripts/` by convention), and the `package.json`-matching logic added real complexity (optional chaining, a runtime type guard, `Object.values` iteration, substring matching) for a narrow edge case.
+
+If real-world testing post-MVP shows misclassified root-level script files are common enough to matter, this check can be reintroduced. `packageJson` is already threaded through `classifyFile`'s signature for this and other potential signals, so restoring it would only mean adding the check back into `isScriptsFile`, not changing the function signature.
 
 ### Stretch Goal: Adding Content-Pattern Signals Later
 

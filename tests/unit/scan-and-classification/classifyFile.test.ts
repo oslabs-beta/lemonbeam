@@ -37,12 +37,6 @@ describe("classifyFile", () => {
     expect(result.filePurpose).toBe("scripts");
   });
 
-  it("classifies a file referenced in package.json's scripts as scripts, even outside a scripts directory", () => {
-    const packageJson = { scripts: { build: "node build.js" } };
-    const result = classifyFile("build.js", [], packageJson);
-    expect(result.filePurpose).toBe("scripts");
-  });
-
   it("classifies a .d.ts file as types", () => {
     const result = classifyFile("src/index.d.ts", [], null);
     expect(result.filePurpose).toBe("types");
