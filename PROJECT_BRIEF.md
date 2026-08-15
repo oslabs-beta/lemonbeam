@@ -224,12 +224,10 @@ LemonBeam uses multiple deterministic signals rather than relying on one rule. F
 - folder patterns
 - filename patterns
 - file extensions
-- package scripts
-- installed dependencies
 - configuration files
 - relationships between nearby files
 
-Limited content-pattern signals (inspecting a file's own text, not just its path) are deferred to a stretch goal — see `DECISIONS.md` > "Path-Based Classification for the MVP, Content-Pattern Signals as a Stretch Goal" for the reasoning and what building them later would require.
+Limited content-pattern signals (inspecting a file's own text, not just its path) and package.json-based signals (scripts and installed dependencies) are deferred to a stretch goal — see `DECISIONS.md` > "Path-Based Classification for the MVP, Content-Pattern Signals as a Stretch Goal" for the reasoning and what building them later would require.
 
 Files with insufficient evidence should remain uncategorized rather than being forced into an incorrect category.
 
