@@ -309,11 +309,11 @@ Files with insufficient evidence remain uncategorized rather than being forced i
 
 ### Decision
 
-For the MVP, `classifyFile.ts` classifies a file using only signals derived from its path, plus two pieces of pre-gathered repository context that `scanService.ts` passes in:
+For the MVP, `classifyFile.ts` classifies a file using only signals derived from its path. `scanService.ts` can also pass pre-gathered repository context for future signals (currently unused by the classifier):
 
 - the file's own relative path (directory segments, filename, extension)
-- the parsed `package.json` (`scripts`, `dependencies`, `devDependencies`) — read and parsed **once** by `scanService.ts` before its file loop, then passed into every `classifyFile` call, not re-read per file
-- the full list of discovered file paths from `discoverFiles.ts` — for relationship checks like "is there a sibling `Foo.test.ts` next to `Foo.ts`"
+- the parsed `package.json` (`scripts`, `dependencies`, `devDependencies`) — intended to be read/parsed once by `scanService.ts`, then passed into every `classifyFile` call
+- the full list of discovered file paths from `discoverFiles.ts` — intended for relationship checks like "is there a sibling `Foo.test.ts` next to `Foo.ts`"
 
 `classifyFile.ts` does not read or inspect the content of the file it is classifying. `ARCHITECTURE.md` and `PROJECT_BRIEF.md` previously listed "limited content patterns" as one of the classification signals; this decision formally narrows that for the MVP and defers it below.
 
