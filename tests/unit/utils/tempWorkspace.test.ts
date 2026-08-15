@@ -32,7 +32,7 @@ async function createTestWorkspace() {
   return workspace;
 }
 
-describe("temp workspace utilites", () => {
+describe("temp workspace utilities", () => {
     afterEach(async () => {
         for (const scanDirectory of createdScanDirectories.splice(0)) {
             await cleanupTempDirectory(scanDirectory);
@@ -44,7 +44,7 @@ describe("temp workspace utilites", () => {
         expect(await exists(workspace.scanDirectory)).toBe(true); 
     });
 
-    it("creates the repository diectory inside the scan directory", async () => {
+    it("creates the repository directory inside the scan directory", async () => {
         const workspace = await createTestWorkspace();
 
         expect(await exists(workspace.repositoryDirectory)).toBe(true); 
