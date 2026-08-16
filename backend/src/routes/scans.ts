@@ -32,6 +32,7 @@
 // - openRouterApiKey passes through this route only in memory — never log it,
 //   never write it to SQLite, never include it in a response, including
 //   error responses
+
 import { Router, Request, Response, NextFunction } from "express";
 import { validateScanRequest } from "../utils/validateScanRequest.js";
 
@@ -86,3 +87,4 @@ router.post(
 );
 
 export const scanRouter = router;
+
