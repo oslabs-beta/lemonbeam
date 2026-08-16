@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type SyntheticEvent } from "react";
 import LemonBeamLogo from "./components/LemonBeamLogo";
 
 function App() {
@@ -15,7 +15,7 @@ function App() {
   // through the same OpenRouter key — see PROJECT_BRIEF.md > "Multiple LLM
   // Provider Options".
 
-  async function handleSubmit(e: React.SyntheticEvent) {
+  async function handleSubmit(e: SyntheticEvent) {
     e.preventDefault();
     if (!url.trim()) return;
     // TODO: wire this up to your backend once the pipeline endpoint exists.
