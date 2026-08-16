@@ -102,7 +102,7 @@ function App() {
             </button>
           </div>
           <p className="mt-3 text-xs text-zinc-500">
-            Public GitHub repositories only · API key stays strictly in memory
+            Public GitHub repositories only · API key is sent only for this request and is never stored
           </p>
         </form>
       </section>
