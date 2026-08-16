@@ -1,8 +1,9 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import LemonBeamLogo from "./components/LemonBeamLogo";
 
 function App() {
   const [url, setUrl] = useState("");
+  const [apiKey, setApiKey] = useState("");
   // NOTE: BYOK uses an OpenRouter API key, not an OpenAI key directly — see
   // DECISIONS.md > "User-Supplied OpenRouter API Key (BYOK)".
   // TODO (BYOK): add const [apiKey, setApiKey] = useState("");
@@ -14,13 +15,37 @@ function App() {
   // through the same OpenRouter key — see PROJECT_BRIEF.md > "Multiple LLM
   // Provider Options".
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
     if (!url.trim()) return;
     // TODO: wire this up to your backend once the pipeline endpoint exists.
     // TODO (BYOK): include openRouterApiKey in the POST /api/scans body:
     //   { repositoryUrl: url.trim(), openRouterApiKey: apiKey.trim() }
-    console.log("Submitted repo:", url.trim());
+    // console.log("Submitted repo:", url.trim());
+
+    try {
+      const response = await fetch("/api/scans", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          repositoryUrl: (url || "").trim(),
+          openRouterApiKey: (apiKey || "").trim(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Scan error:", data);
+        return;
+      }
+
+      console.log("Scan success:", data);
+    } catch (error) {
+      console.error("Network or parsing error:", error);
+    }
   }
 
   return (
@@ -44,7 +69,10 @@ function App() {
           into a clear, reliable guide.
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-10 w-full max-w-2xl">
+        <form
+          onSubmit={handleSubmit}
+          className="mt-10 w-full max-w-2xl flex flex-col gap-4"
+        >
           <div className="flex gap-3">
             <input
               type="url"
@@ -53,6 +81,14 @@ function App() {
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://github.com/example/project.git"
               className="flex-1 rounded-lg border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none focus:border-[var(--color-yellow)]"
+            />
+            <input
+              type="password"
+              required
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="OpenRouter API Key (sk-or-v1-...)"
+              className="w-72 rounded-lg border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none focus:border-[var(--color-yellow)]"
             />
             <button
               type="submit"
@@ -66,7 +102,7 @@ function App() {
             </button>
           </div>
           <p className="mt-3 text-xs text-zinc-500">
-            Public GitHub repositories only
+            Public GitHub repositories only · API key stays strictly in memory
           </p>
         </form>
       </section>
