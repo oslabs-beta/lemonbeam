@@ -237,13 +237,14 @@ Tree-sitter is one parsing method, not the universal parser for every file.
 
 ### Reasons
 
-- Source code, Markdown, configuration files, and unknown text have different structures.
+- Source code, test code, Markdown, configuration files, and unknown text have different structures.
 - A single strategy would not handle every file type well.
 - File-appropriate strategies preserve meaning more effectively.
 
 ### Consequences
 
-- Supported JavaScript and TypeScript code uses Tree-sitter.
+- Supported JavaScript and TypeScript source code uses Tree-sitter.
+- Test files (JavaScript/TypeScript) also use Tree-sitter, with added detection of test-specific constructs (`describe`/`it`/`test`/hooks) on top of the same general chunking.
 - Markdown uses heading- and section-based chunking.
 - Configuration files use structured or rule-based handling.
 - Unsupported readable text may use heuristic, regex, fallback chunking, or be skipped.
