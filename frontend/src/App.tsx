@@ -26,6 +26,9 @@ function App() {
 
   async function handleSubmit(e: SyntheticEvent) {
     e.preventDefault();
+    
+    // Add this guard line to prevent double-clicks/duplicate submissions
+    if (isLoading) return;
     if (!url.trim()) return;
     // TODO: wire this up to your backend once the pipeline endpoint exists.
     // TODO (BYOK): include openRouterApiKey in the POST /api/scans body:
@@ -51,7 +54,7 @@ function App() {
       const data = await response.json();
 
       if (!response.ok) {
-        const errorMsg = data?.error?.message || data?.message || "An unexpected error occured during the scan.";
+        const errorMsg = data?.error?.message || data?.message || "An unexpected error occurred during the scan.";
         setErrorMessage(errorMsg);
         return;
       }
