@@ -1,9 +1,18 @@
 import { useState, type SyntheticEvent } from "react";
 import LemonBeamLogo from "./components/LemonBeamLogo";
+import ScanResults from "./components/ScanResults";
+
+
 
 function App() {
   const [url, setUrl] = useState("");
   const [apiKey, setApiKey] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [scanResult, setScanResult] = useState<{
+    scanId: string;
+    guide: { markdown: string };
+  } | null>(null);
   // NOTE: BYOK uses an OpenRouter API key, not an OpenAI key directly — see
   // DECISIONS.md > "User-Supplied OpenRouter API Key (BYOK)".
   // TODO (BYOK): add const [apiKey, setApiKey] = useState("");
@@ -23,6 +32,10 @@ function App() {
     //   { repositoryUrl: url.trim(), openRouterApiKey: apiKey.trim() }
     // console.log("Submitted repo:", url.trim());
 
+    setIsLoading(true);
+    setErrorMessage(null);
+    setScanResult(null);
+
     try {
       const response = await fetch("/api/scans", {
         method: "POST",
@@ -38,13 +51,17 @@ function App() {
       const data = await response.json();
 
       if (!response.ok) {
-        console.error("Scan error:", data);
+        const errorMsg = data?.error?.message || data?.message || "An unexpected error occured during the scan.";
+        setErrorMessage(errorMsg);
         return;
       }
 
-      console.log("Scan success:", data);
+      setScanResult(data);
     } catch (error) {
       console.error("Network or parsing error:", error);
+      setErrorMessage("Network error: Failed to reach the server. Please check your connection.");
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -92,19 +109,33 @@ function App() {
             />
             <button
               type="submit"
+              disabled={isLoading}
               className="whitespace-nowrap rounded-lg px-6 py-3.5 text-sm font-semibold text-black transition-opacity hover:opacity-90"
               style={{
                 background:
                   "linear-gradient(90deg, var(--color-yellow-pale), var(--color-yellow), var(--color-yellow-deep))",
               }}
             >
-              Generate →
+              {isLoading ? "Generating..." : "Generate →"}
             </button>
           </div>
           <p className="mt-3 text-xs text-zinc-500">
-            Public GitHub repositories only · API key is sent only for this request and is never stored
+            Public GitHub repositories only · API key is sent only for this
+            request and is never stored
           </p>
         </form>
+
+        {/* Display Error Message Clearly */}
+        {errorMessage && (
+          <div className="mt-6 w-full max-w-2xl rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-left text-sm text-red-400 shadow-lg">
+            <span className="font-semibold">Error: </span> {errorMessage}
+          </div>
+        )}
+
+        {/* Display Scan Results Component when data is returned */}
+        {scanResult && scanResult.guide && (
+          <ScanResults guideMarkdown={scanResult.guide.markdown} />
+        )}
       </section>
     </main>
   );
