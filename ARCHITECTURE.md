@@ -496,6 +496,7 @@ backend/
 │   ├── chunking/
 │   │   ├── chunkFile.ts
 │   │   ├── treeSitterChunker.ts
+│   │   ├── treeSitterTestChunker.ts
 │   │   ├── markdownChunker.ts
 │   │   ├── configChunker.ts
 │   │   └── fallbackChunker.ts

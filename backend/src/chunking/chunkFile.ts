@@ -6,6 +6,7 @@ import type { ChunkInput, Chunk } from "../types/chunk.js";
 import { configChunker, canHandleConfig } from "./configChunker.js";
 import { markdownChunker } from "./markdownChunker.js";
 import { chunkWithTreeSitter } from "./treeSitterChunker.js";
+import { chunkTestFile } from "./treeSitterTestChunker.js";
 import { fallbackChunker } from "./fallbackChunker.js";
 
 export type ChunkResult =
@@ -25,6 +26,12 @@ const chunkers: ChunkerEntry[] = [
     {
         canHandle: (input) => input.language === "markdown",
         chunk: markdownChunker,
+    },
+    {
+        canHandle: (input) =>
+        input.filePurpose === "test" &&
+        (input.language === "typescript" || input.language === "javascript"),
+        chunk: chunkTestFile,
     },
     {
         canHandle: (input) =>
