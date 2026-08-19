@@ -273,4 +273,40 @@ describe("validateRepository", () => {
         });
     });
 
+    it("throws RATE_LIMITED when GitHub rate-limits a later validation request", async () => {
+        const fetchMock = vi
+            .fn()
+            .mockResolvedValueOnce(
+            mockJsonResponse(200, {
+                owner: { login: "example" },
+                name: "project",
+                html_url: "https://github.com/example/project",
+                default_branch: "main",
+                language: "TypeScript",
+                size: 1200,
+                private: false,
+            }),
+            )
+            .mockResolvedValueOnce(
+            mockJsonResponse(
+                403,
+                {
+                message: "API rate limit exceeded",
+                },
+                {
+                "x-ratelimit-remaining": "0",
+                },
+            ),
+            );
+
+        globalThis.fetch = fetchMock;
+
+        await expect(
+            validateRepository("https://github.com/example/project"),
+        ).rejects.toMatchObject({
+            status: 429,
+            code: "RATE_LIMITED",
+        });
+    });
+
 });
