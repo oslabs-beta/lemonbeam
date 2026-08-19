@@ -47,7 +47,7 @@ async function generateGuideSection({
     if (!openRouterApiKey) {
         const authError = new Error("OpenRouter API key is missing");
         // Ensure the API key is never attached to or logged in the thrown error
-        (authError as any).code = "LLM_AUTHENTICATION_FAILED";
+        (authError as any).code = "MISSING_OPENROUTER_API_KEY";
         throw authError;
     }
 
@@ -60,11 +60,11 @@ async function generateGuideSection({
 
     try {
         // 3. Build prompt and execute LLM call using MVP_MODEL
-        const prompt = buildMvpGuidePrompt(chunks);
+        const messages = buildMvpGuidePrompt(chunks);
 
         const response = await client.chat.completions.create({
         model: MVP_MODEL,
-        messages: [{ role: "user", content: prompt }],
+        messages,
         });
 
         const text = response.choices[0]?.message?.content || "";
