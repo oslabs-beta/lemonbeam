@@ -13,10 +13,11 @@
 // Returns a two-message array — a `system` message carrying the fixed
 // instructions below, and a `user` message carrying the supplied evidence
 // — for orchestration/generateGuideSection.ts to pass straight to
-// client.chat.completions.create({ model, messages }). See DECISIONS.md >
-// "Chat Completions API, Not the Responses API" for why this returns a
+// client.chat.completions.create({ model, messages }). It returns a
 // ChatCompletionMessageParam[] (from the `openai` package) rather than a
-// plain string or a Responses-style { instructions, input } pair.
+// plain string or a Responses-style { instructions, input } pair because
+// orchestration/generateGuideSection.ts passes these messages straight to
+// that chat-completions call.
 //
 // This file must not retrieve chunks or access the repository itself (see
 // ARCHITECTURE.md > "Prompt Builders": prompt builders build prompts,
@@ -37,9 +38,9 @@ const role = `You are a technical writer producing an onboarding guide for a sof
 // Titles are interpolated from GUIDE_SECTIONS rather than hardcoded, so
 // this prompt can't silently drift out of sync if the fixed section order
 // ever changes there — guideSections.ts stays the single source of truth
-// (see DECISIONS.md > "Guide Citation Format..." and guideSections.ts's
-// own header comment). The description under each heading is copied from
-// PROJECT_BRIEF.md > "Fixed Guide Format", not invented here.
+// (see the citation rules below and guideSections.ts's own header comment).
+// The description under each heading is copied from PROJECT_BRIEF.md >
+// "Fixed Guide Format", not invented here.
 const sectionRequirements = `
 Write a guide with exactly these five sections, in this exact order, using these exact headings:
 
@@ -70,8 +71,8 @@ const evidenceRules = `
 Use ONLY the evidence chunks supplied in the user message. Never invent file paths, commands, dependencies, ports, environment variables, or any other detail that is not present in the supplied evidence — even if it would be a typical or expected value for a project like this one.
 `;
 
-// Implements DECISIONS.md > "Guide Citation Format: Inline Bracketed
-// File:Line References" — this is the exact format
+// Implements the source-backed citation decision in DECISIONS.md — this is
+// the exact inline bracketed format
 // orchestration/generateGuideSection.ts's citation validator will parse
 // and check against the supplied chunks. If this wording ever changes,
 // whoever owns that validator needs to know, since their parsing logic
@@ -159,9 +160,10 @@ function buildUserMessageContent(chunks: Chunk[]): string {
   return chunks.map(formatChunkForEvidence).join("\n\n");
 }
 
-// See DECISIONS.md > "Chat Completions API, Not the Responses API" for
-// why this returns this specific two-message shape rather than a plain
-// string or a Responses-style { instructions, input } pair.
+// Returns this specific two-message shape because
+// orchestration/generateGuideSection.ts passes it straight to
+// client.chat.completions.create(...) rather than converting a plain string
+// or a Responses-style { instructions, input } pair.
 function buildMvpGuidePrompt(chunks: Chunk[]): ChatCompletionMessageParam[] {
   return [
     { role: "system", content: systemPrompt },
