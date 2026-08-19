@@ -27,3 +27,4 @@ backend/data/*.sqlite-wal
 *.njsproj
 *.sln
 *.sw?
+*.tsbuildinfo
