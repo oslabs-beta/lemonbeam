@@ -264,6 +264,48 @@ describe("validateRepository", () => {
         });
     });
 
+    it("does not reject files whose names only end with package.json", async () => {
+        const fetchMock = vi
+            .fn()
+            .mockResolvedValueOnce(
+            mockJsonResponse(200, {
+                owner: { login: "example" },
+                name: "project",
+                html_url: "https://github.com/example/project",
+                default_branch: "main",
+                language: "TypeScript",
+                size: 1200,
+                private: false,
+            }),
+            )
+            .mockResolvedValueOnce(
+            mockJsonResponse(200, {
+                commit: { sha: "abc123" },
+            }),
+            )
+            .mockResolvedValueOnce(
+            mockJsonResponse(200, {
+                truncated: false,
+                tree: [
+                { type: "blob", path: "package.json" },
+                { type: "blob", path: "docs/my-package.json" },
+                ],
+            }),
+            );
+
+        globalThis.fetch = fetchMock;
+
+        await expect(
+            validateRepository("https://github.com/example/project"),
+        ).resolves.toEqual({
+            owner: "example",
+            name: "project",
+            url: "https://github.com/example/project",
+            defaultBranch: "main",
+            commitSha: "abc123",
+        });
+    });
+
     it("throws INVALID_REPOSITORY_URL for a non-GitHub URL", async () => {
         await expect(
             validateRepository("https://example.com/example/project"),

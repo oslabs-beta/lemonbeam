@@ -451,7 +451,7 @@ function rejectMonorepo(data: unknown): void {
     .filter((entry) => entry.type === "blob")
     .map((entry) => entry.path)
     .filter((path): path is string => typeof path === "string")
-    .filter((path) => path.endsWith("package.json"))
+    .filter((path) => path === "package.json" || path.endsWith("/package.json"))
     .filter((path) => !isSkippedPath(path));
 
   const nestedPackageJsonPaths = packageJsonPaths.filter(
