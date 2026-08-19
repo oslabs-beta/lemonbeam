@@ -1,3 +1,44 @@
+import type { Chunk } from "../types/chunk";
+import type { SkippedFile } from "../scan/scanService";
+import { generateGuideSection } from "./generateGuideSection";
+
+type GuideResult = {
+    markdown: string;
+}
+
+function buildUncertaintiesSection(skippedFiles: SkippedFile[]): string {
+  if (skippedFiles.length === 0) {
+    return "## Uncertainties and Missing Information\n\nAll files were scanned successfully — there is nothing to report in this section.";
+  }
+
+  const lines = skippedFiles.map((file) => `- \`${file.filePath}\` — ${file.reason}`);
+
+  return [
+    "## Uncertainties and Missing Information",
+    "",
+    "The following files could not be analyzed and may be missing from this guide:",
+    "",
+    ...lines,
+  ].join("\n");
+}
+
+async function generateGuide(
+    chunks: Chunk[],
+    skippedFiles: SkippedFile[],
+    openRouterApiKey: string
+): Promise<GuideResult> {
+    const { text } = await generateGuideSection({ openRouterApiKey, chunks });
+    const uncertaintiesSection = buildUncertaintiesSection(skippedFiles);
+
+    return {
+        markdown: `${text}\n\n${uncertaintiesSection}`,
+    };
+}
+
+
+export { generateGuide };
+export type { GuideResult };
+
 // Guide generator. Called by pipelineManager.ts, after scan/scanService.ts
 // returns { chunks, skippedFiles }.
 //
@@ -43,5 +84,3 @@
 // Promise.allSettled, not Promise.all, so one failed section doesn't
 // cancel the other four), sorts them into the fixed order, and merges each
 // task's own uncertainty output with the skipped-files list.
-
-export {}
