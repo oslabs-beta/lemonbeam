@@ -7,8 +7,8 @@
 
 type GuideSectionId = "overview" | "setup" | "running" | "structure" | "testing";
 
-// title is the exact heading the LLM must produce: id is a stable key for 
-// the post-MVP five-task verson to look up each section's own prompt.
+// title is the exact heading the LLM must produce: id is a stable key for
+// the post-MVP five-task version to look up each section's own prompt.
 type GuideSection = {
     id: GuideSectionId;
     title: string;
