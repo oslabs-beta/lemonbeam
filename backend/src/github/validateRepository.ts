@@ -265,9 +265,18 @@ async function requestGitHubJson(url: string): Promise<{
   headers: Headers;
   data: unknown;
 }> {
-  const response = await fetch(url, {
-    headers: buildGitHubHeaders(),
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: buildGitHubHeaders(),
+    });
+  } catch {
+    throw new RepositoryValidationError(
+      502,
+      "GITHUB_SERVICE_ERROR",
+      "GitHub request failed.",
+    );
+  }
 
   let data: unknown;
 
