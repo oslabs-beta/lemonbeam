@@ -131,26 +131,34 @@ async function validateRepository(
 
   const branchResponse = await requestGitHubJson(branchApiUrl);
 
-  if (!branchResponse.ok) {
-    throw new RepositoryValidationError(
-      502,
-      "GITHUB_SERVICE_ERROR",
-      "GitHub failed while resolving the repository version.",
-    );
-  }
+    if (branchResponse.status === 403) {
+        throwForbiddenOrRateLimit(branchResponse.headers);
+    }
+  
+    if (!branchResponse.ok) {
+        throw new RepositoryValidationError(
+        502,
+        "GITHUB_SERVICE_ERROR",
+        "GitHub failed while resolving the repository version.",
+        );
+    }
 
   const commitSha = parseBranchCommitSha(branchResponse.data);
 
   const treeApiUrl = `${repositoryApiUrl}/git/trees/${commitSha}?recursive=1`;
   const treeResponse = await requestGitHubJson(treeApiUrl);
 
-  if (!treeResponse.ok) {
-    throw new RepositoryValidationError(
-      502,
-      "GITHUB_SERVICE_ERROR",
-      "GitHub failed while checking repository structure.",
-    );
-  }
+    if (treeResponse.status === 403) {
+        throwForbiddenOrRateLimit(treeResponse.headers);
+    }
+
+    if (!treeResponse.ok) {
+        throw new RepositoryValidationError(
+        502,
+        "GITHUB_SERVICE_ERROR",
+        "GitHub failed while checking repository structure.",
+        );
+    }
 
   rejectMonorepo(treeResponse.data);
 
