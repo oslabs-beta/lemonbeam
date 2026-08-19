@@ -9,17 +9,24 @@ import { classifyFile } from "./classifyFile.js";
 import { chunkFile } from "../chunking/chunkFile.js";
 import type { Chunk, ChunkInput } from "../types/chunk.js";
 
+// One file that failed to become chunks, and why. pipelineManager.ts passes
+// a list of these to orchestration/generateGuide.ts, which folds them into
+// the guide's "Uncertainties and Missing Information" section (see
+// DECISIONS.md > "Skipped Files Are Not Fatal, and Are Reported").
 type SkippedFile = {
     filePath: string;
     reason: string;
 };
 
+// scanRepository's return shape. In memory only for the MVP — no SQLite
+// write happens here (see DECISIONS.md > "In-Memory Chunk Storage for the
+// MVP, SQLite as a Stretch Goal").
 type ScanResult = {
     chunks: Chunk[];
     skippedFiles: SkippedFile[];
 };
 
-async function scanRepository(repoLocalPath: string, scanId: string): Promise<ScanResult> 
+async function scanRepository(repoLocalPath: string, scanId: string): Promise<ScanResult>
 {
     const filePaths = await discoverFiles(repoLocalPath);
 
@@ -27,6 +34,10 @@ async function scanRepository(repoLocalPath: string, scanId: string): Promise<Sc
     const skippedFiles: SkippedFile[] = [];
 
     for (const filePath of filePaths) {
+        // A read failure (permissions, a file that vanished between
+        // discovery and now, bad encoding) skips just this file instead of
+        // aborting the whole scan — one bad file must never take down an
+        // otherwise-analyzable repository.
         let content: string;
         try {
             content = await readFile(path.join(repoLocalPath, filePath), "utf-8");
@@ -37,8 +48,15 @@ async function scanRepository(repoLocalPath: string, scanId: string): Promise<Sc
             });
             continue;
         }
+
+        // No try/catch needed here: classifyFile only inspects the path
+        // string (no disk I/O), so it can't throw.
         const { filePurpose, language } = classifyFile(filePath);
 
+        // filePath stays repo-relative here (as returned by discoverFiles),
+        // not the absolute path used to read it above — chunks must cite
+        // paths a user can find in their own copy of the repo, not this
+        // machine's local filesystem layout.
         const chunkInput: ChunkInput = {
             scanId,
             filePath,
@@ -46,6 +64,10 @@ async function scanRepository(repoLocalPath: string, scanId: string): Promise<Sc
             filePurpose,
             language,
         };
+
+        // chunkFile never throws to its caller — it always returns a
+        // ChunkResult, so the only branch needed here is ok/not-ok, not a
+        // try/catch.
         const result = chunkFile(chunkInput);
 
         if (!result.ok) {
