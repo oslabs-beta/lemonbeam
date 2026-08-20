@@ -1,62 +1,89 @@
-// Pipeline manager — the one file that sequences an entire scan, start to finish.
+// Pipeline manager: sequences one scan from validated request data through
+// repository analysis.
 //
-// This is the "manager": routes/scans.ts stays thin (it only validates the
-// request and formats the HTTP response); this file is what actually calls
-// GitHub, the analyzer, guide generation, and cleanup, in order.
+// routes/scans.ts stays thin: it validates the HTTP request, calls this file,
+// and formats the HTTP response. This file owns the backend scan order.
+//
+// Current sprint scope:
+// 1. generates a unique scan ID
+// 2. calls utils/tempDirectory.ts to create this scan's isolated temp
+//    directory before any GitHub request is made
+// 3. calls github/validateRepository.ts to confirm the repository exists, is
+//    public, is JavaScript/TypeScript, is not a monorepo, is within the MVP
+//    size limit, and resolves default branch + commit SHA
+// 4. calls github/downloadSnapshot.ts to download the exact snapshot into the
+//    scan's temp directory using the unauthenticated codeload tarball URL;
+//    GITHUB_TOKEN is used only by validateRepository.ts for REST API calls
+// 5. calls scan/scanService.ts to discover, classify, and chunk the downloaded
+//    repository, returning { chunks, skippedFiles } in memory for the MVP
+// 6. wraps the workflow in try/finally so utils/cleanup.ts always deletes the
+//    temp workspace on success or failure
+// 7. returns what routes/scans.ts needs for this sprint: scanId, repository
+//    metadata, and scanResult
+//
+// Out of scope for this sprint:
+// - do not call orchestration/generateGuide.ts yet
+// - do not return guide.markdown yet
+// - do not add LLM/OpenRouter failure mapping here yet
+//
+// Later guide-generation work should call orchestration/generateGuide.ts after
+// scanService.ts returns { chunks, skippedFiles }, pass skippedFiles so the
+// guide can include uncertainties, keep that call inside the same try/finally,
+// and return guide.markdown on success. If generation fails outright, the whole
+// scan should fail; no partial guide is returned for the MVP.
+//
+// This file does not itself talk to Express, GitHub internals, scanning,
+// chunking, prompt construction, or LLM providers. It only sequences the owning
+// modules.
 //
 // See DECISIONS.md > "Thin Routes; `pipelineManager.ts` Sequences the Scan"
 // and ARCHITECTURE.md > "Express Backend" / "End-to-End Scan Lifecycle".
-//
-// TODO: export a function (e.g. runScan(repositoryUrl, openRouterApiKey)) that:
-//
-// 1. generates a unique scan ID
-// 2. calls utils/tempDirectory.ts to create this scan's isolated temp
-//    directory (before any GitHub request — see DECISIONS.md > scan
-//    ID/workspace ownership)
-// 3. calls github/validateRepository.ts to confirm the repo exists, is
-//    public, is JS/TS, is not a monorepo, and is within the MVP size limit
-//    (~25-50MB total after ignore rules — see DECISIONS.md > "Repository
-//    Size Limits for the MVP"), then identifies the default branch + commit
-//    SHA
-// 4. calls github/downloadSnapshot.ts to download the exact snapshot into
-//    the scan's temp directory. Confirmed download mechanism: the GitHub
-//    REST API (authenticated with GITHUB_TOKEN) is used only for
-//    validateRepository.ts's checks; the actual download uses the
-//    unauthenticated codeload.github.com tarball URL, so it doesn't burn
-//    the 60/hr unauthenticated REST rate limit — see
-//    github/validateRepository.ts and github/downloadSnapshot.ts.
-// 5. calls scan/scanService.ts to discover, classify, and chunk the
-//    downloaded repository. scanService.ts returns both the produced chunks
-//    and a list of skipped files (path + reason) — see DECISIONS.md >
-//    "Skipped Files Are Not Fatal, and Are Reported"
-//    For the MVP this is NOT written to SQLite — pass the returned
-//    { chunks, skippedFiles } straight into step 6 (see DECISIONS.md >
-//    "In-Memory Chunk Storage for the MVP, SQLite as a Stretch Goal").
-// ---- NEXT SPRINT, not this sprint (orchestration/generateGuide.ts does
-// not exist yet) — steps 6-9 below describe the eventual full pipeline so
-// the shape of this file doesn't have to be rewritten later, but THIS
-// SPRINT's runScan() should return right after step 5's
-// { chunks, skippedFiles }. Do not call generateGuide.ts or attempt to
-// return guide.markdown yet. ----
-// 6. calls orchestration/generateGuide.ts to generate the guide. For the
-//    MVP this is ONE combined LLM call producing all five primary sections
-//    (see DECISIONS.md > "One Combined Generation Call for the MVP, Five
-//    Tasks as a Stretch Goal"). Pass the skipped-files list from step 5 so
-//    generateGuide.ts can assemble the sixth "Uncertainties and Missing
-//    Information" section from it (no extra LLM call).
-// 7. wraps steps 2–6 in a try/finally block that calls utils/cleanup.ts no
-//    matter what happens — success, a thrown error at any step, or an
-//    OpenRouter failure. Cleanup must run even when the scan fails.
-// 8. if the one MVP generation call fails outright (OpenRouter error, rate
-//    limit, malformed output), the whole scan fails — there is no partial
-//    guide for the MVP. Return an error that routes/scans.ts can map to
-//    LLM_SERVICE_ERROR / EXTERNAL_SERVICE_ERROR (see API_CONTRACT.md). No
-//    retry logic is required for the MVP.
-// 9. on success, returns whatever routes/scans.ts needs to build the 200
-//    response defined in API_CONTRACT.md: scanId, repository metadata
-//    (name, owner, url, defaultBranch, commitSha), and guide.markdown.
-//
-// This file does not itself talk to Express (no req/res) — routes/scans.ts
-// owns that. This file also does not contain GitHub, scanning, chunking, or
-// prompt logic itself — it only calls the files that do.
-export {}
+import { randomUUID } from "node:crypto";
+import { createTempDirectory } from "./utils/tempDirectory.js";
+import { cleanupTempDirectory } from "./utils/cleanup.js";
+import { validateRepository } from "./github/validateRepository.js";
+import { downloadSnapshot } from "./github/downloadSnapshot.js";
+import { scanRepository } from "./scan/scanService.js";
+import type { ValidatedRepository } from "./github/validateRepository.js";
+import type { ScanResult } from "./scan/scanService.js";
+
+type RunScanInput = {
+  repositoryUrl: string;
+  openRouterApiKey: string;
+};
+
+type RunScanResult = {
+  scanId: string;
+  repository: ValidatedRepository;
+  scanResult: ScanResult;
+};
+
+async function runScan(input: RunScanInput): Promise<RunScanResult> {
+  const scanId = `scan_${randomUUID()}`;
+  const workspace = await createTempDirectory(scanId);
+
+  try {
+    const repository = await validateRepository(input.repositoryUrl);
+
+    const repositoryDirectory = await downloadSnapshot({
+      owner: repository.owner,
+      name: repository.name,
+      commitSha: repository.commitSha,
+      scanDirectory: workspace.scanDirectory,
+      repositoryDirectory: workspace.repositoryDirectory,
+    });
+
+    const scanResult = await scanRepository(repositoryDirectory, scanId);
+
+    return {
+      scanId,
+      repository,
+      scanResult,
+    };
+  } finally {
+    await cleanupTempDirectory(workspace.scanDirectory);
+  }
+}
+
+export { runScan };
+export type { RunScanInput, RunScanResult };
