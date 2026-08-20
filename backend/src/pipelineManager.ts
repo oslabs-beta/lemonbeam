@@ -1,10 +1,10 @@
 // Pipeline manager: sequences one scan from validated request data through
-// repository analysis.
+// guide generation.
 //
 // routes/scans.ts stays thin: it validates the HTTP request, calls this file,
 // and formats the HTTP response. This file owns the backend scan order.
 //
-// Current sprint scope:
+// Current pipeline scope:
 // 1. generates a unique scan ID
 // 2. calls utils/tempDirectory.ts to create this scan's isolated temp
 //    directory before any GitHub request is made
@@ -16,21 +16,15 @@
 //    GITHUB_TOKEN is used only by validateRepository.ts for REST API calls
 // 5. calls scan/scanService.ts to discover, classify, and chunk the downloaded
 //    repository, returning { chunks, skippedFiles } in memory for the MVP
-// 6. wraps the workflow in try/finally so utils/cleanup.ts always attempts to
+// 6. calls orchestration/generateGuide.ts once for the MVP, passing chunks,
+//    skippedFiles, and the request's openRouterApiKey
+// 7. wraps the workflow in try/finally so utils/cleanup.ts always attempts to
 //    delete the temp workspace on success or failure
-// 7. returns what routes/scans.ts needs for this sprint: scanId, repository
-//    metadata, and scanResult
+// 8. returns what routes/scans.ts needs for the 200 response: scanId,
+//    repository metadata, and guide.markdown
 //
-// Out of scope for this sprint:
-// - do not call orchestration/generateGuide.ts yet
-// - do not return guide.markdown yet
-// - do not add LLM/OpenRouter failure mapping here yet
-//
-// Later guide-generation work should call orchestration/generateGuide.ts after
-// scanService.ts returns { chunks, skippedFiles }, pass skippedFiles so the
-// guide can include uncertainties, keep that call inside the same try/finally,
-// and return guide.markdown on success. If generation fails outright, the whole
-// scan should fail; no partial guide is returned for the MVP.
+// If guide generation fails outright, the whole scan fails; no partial guide is
+// returned for the MVP. No retry logic is required here.
 //
 // This file does not itself talk to Express, GitHub internals, scanning,
 // chunking, prompt construction, or LLM providers. It only sequences the owning
@@ -44,8 +38,9 @@ import { cleanupTempDirectory } from "./utils/cleanup.js";
 import { validateRepository } from "./github/validateRepository.js";
 import { downloadSnapshot } from "./github/downloadSnapshot.js";
 import { scanRepository } from "./scan/scanService.js";
+import { generateGuide } from "./orchestration/generateGuide.js";
+import type { GuideResult } from "./orchestration/generateGuide.js";
 import type { ValidatedRepository } from "./github/validateRepository.js";
-import type { ScanResult } from "./scan/scanService.js";
 
 type RunScanInput = {
   repositoryUrl: string;
@@ -55,7 +50,7 @@ type RunScanInput = {
 type RunScanResult = {
   scanId: string;
   repository: ValidatedRepository;
-  scanResult: ScanResult;
+  guide: GuideResult;
 };
 
 async function runScan(input: RunScanInput): Promise<RunScanResult> {
@@ -74,11 +69,16 @@ async function runScan(input: RunScanInput): Promise<RunScanResult> {
     });
 
     const scanResult = await scanRepository(repositoryDirectory, scanId);
+    const guide = await generateGuide(
+      scanResult.chunks,
+      scanResult.skippedFiles,
+      input.openRouterApiKey,
+    );
 
     return {
       scanId,
       repository,
-      scanResult,
+      guide,
     };
   } finally {
     try {
