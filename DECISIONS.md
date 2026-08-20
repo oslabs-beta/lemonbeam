@@ -551,6 +551,28 @@ When evidence is missing or unclear, LemonBeam reports uncertainty rather than g
 
 ---
 
+## Guide Citation Format: Inline Bracketed File:Line References
+
+### Decision
+
+Guide citations use one fixed inline format: `[filePath:startLine-endLine]`, placed directly after the claim it supports — e.g. "Install dependencies with `npm install` [package.json:6-10]." A claim backed by more than one chunk chains multiple brackets: `[package.json:5-8][vite.config.ts:1-12]`.
+
+For chunks without a line range (some chunkers — e.g. fallback text-block or whole-file config chunks — may not produce one; see `types/chunk.ts`), the citation drops the range and uses the file path alone: `[filePath]`.
+
+### Reasons
+
+- Self-contained per citation, with no cross-referencing or running state (unlike footnote-style formats). This matters once "Five Separate Section-Generation Tasks" (see `PROJECT_BRIEF.md`) splits generation into five independent LLM calls merged afterward — footnote numbering would collide across independently generated sections; this format doesn't.
+- Simple for the LLM to produce consistently (one fixed token pattern shown by example in the prompt) and simple for `generateGuideSection.ts` to parse and validate with a single regex, instead of relying on unreliable natural-language citation phrasing.
+- Uses `filePath` + line range — properties of the source code itself — rather than a database-generated chunk ID, so it doesn't depend on chunk storage (see "In-Memory Chunk Storage for the MVP, SQLite as a Stretch Goal"). It keeps working unchanged once SQLite chunk IDs exist in the post-MVP sprint; the citation format doesn't need to change when the storage layer does.
+
+### Consequences
+
+- `prompts/mvpGuidePrompt.ts`'s prompt must instruct the model to produce this exact format, with examples.
+- `orchestration/generateGuideSection.ts` parses citations out of the returned markdown using this format and validates each one against the chunks it supplied — a citation whose `filePath`/line range doesn't match a real chunk indicates an invented claim (see "Source-Backed Claims and Citation Validation").
+- The final `guide.markdown` users see displays these bracketed tokens as-is; the format is intentionally terse and mechanical for reliable parsing, not a polished prose citation style.
+
+---
+
 ## User-Supplied OpenRouter API Key (BYOK)
 
 ### Decision
@@ -582,6 +604,31 @@ For the MVP, the backend routes every request through OpenRouter to a single fix
 - The backend must never write the key to logs, SQLite, temporary files, or error responses.
 - A missing, malformed, or OpenRouter-rejected key returns a specific error so the frontend can prompt the user to fix it, rather than a generic external-service failure.
 - A server-side `OPENROUTER_API_KEY` environment variable may remain as a local-development fallback but must not be relied on for hosted/production usage.
+
+---
+
+## Chat Completions API, Not the Responses API
+
+### Decision
+
+`orchestration/generateGuideSection.ts` calls OpenRouter using the Chat Completions API (`client.chat.completions.create({ model, messages })`), not the newer Responses API. `prompts/mvpGuidePrompt.ts` returns a `ChatCompletionMessageParam[]` — a `system` message carrying the fixed instructions (section order, evidence-only rule, citation format, low-confidence marking) and a `user` message carrying the retrieved evidence — rather than a Responses-style `{ instructions, input }` pair.
+
+### Reasons
+
+- Chat Completions is confirmed and extensively documented as OpenRouter's cross-provider gateway — every model across every provider (`anthropic/...`, `google/...`, `openai/...`, etc.) is reachable through it via the `model` field.
+- OpenRouter's Responses endpoint (`/api/v1/responses`) could not be confirmed to support non-OpenAI models. Its own documentation ties it specifically to OpenAI compatibility, its one worked example uses an OpenAI model, and it's far less prominently documented than Chat Completions across independent sources.
+- The MVP's single fixed model (see "User-Supplied OpenRouter API Key (BYOK)") makes this low-stakes today, but "Multiple LLM Provider Options" (see `PROJECT_BRIEF.md`) — the post-MVP stretch goal that lets users pick between models — most likely means different underlying providers, not three OpenAI models. Choosing Chat Completions now avoids a forced rework of `mvpGuidePrompt.ts`'s return shape if the Responses API turns out not to support non-OpenAI models when that stretch goal is built.
+- The Responses API's actual differentiator — server-side conversation state via `previous_response_id` — isn't usable through OpenRouter anyway (its Responses endpoint is stateless-only), and isn't needed here regardless: every guide-generation call is a single one-shot request, not a multi-turn conversation.
+
+### Alternatives Considered
+
+- **Responses API (`instructions` / `input`)** — rejected for the MVP, despite matching the pattern used in the team's prior projects, specifically because of the unconfirmed non-OpenAI model support described above. If OpenRouter's Responses endpoint is later confirmed to fully support the `model` field the same way Chat Completions does, this could be revisited.
+
+### Consequences
+
+- `prompts/mvpGuidePrompt.ts` exports a function returning `ChatCompletionMessageParam[]` (from the `openai` package), not a plain string or an `{ instructions, input }` pair.
+- `orchestration/generateGuideSection.ts` passes that array directly to `client.chat.completions.create({ model: MVP_MODEL, messages })` and reads the result from `response.choices[0].message.content`, not `response.output_text`.
+- If the stretch-goal model dropdown is ever built against a provider whose OpenRouter support differs meaningfully between the two endpoints, revisit this decision.
 
 ---
 
