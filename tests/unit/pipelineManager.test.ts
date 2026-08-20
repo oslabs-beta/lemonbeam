@@ -62,7 +62,7 @@ vi.mock("../../backend/src/scan/scanService.ts", () => ({
 }));
 
 const repositoryUrl = "https://github.com/example/project";
-const openRouterApiKey = "sk-or-v1-test-key";
+const openRouterApiKey = "test-api-key";
 
 const workspace = {
   scanDirectory: "/tmp/lemonbeam/scan_test_123",
