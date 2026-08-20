@@ -16,8 +16,8 @@
 //    GITHUB_TOKEN is used only by validateRepository.ts for REST API calls
 // 5. calls scan/scanService.ts to discover, classify, and chunk the downloaded
 //    repository, returning { chunks, skippedFiles } in memory for the MVP
-// 6. wraps the workflow in try/finally so utils/cleanup.ts always deletes the
-//    temp workspace on success or failure
+// 6. wraps the workflow in try/finally so utils/cleanup.ts always attempts to
+//    delete the temp workspace on success or failure
 // 7. returns what routes/scans.ts needs for this sprint: scanId, repository
 //    metadata, and scanResult
 //
@@ -81,7 +81,11 @@ async function runScan(input: RunScanInput): Promise<RunScanResult> {
       scanResult,
     };
   } finally {
-    await cleanupTempDirectory(workspace.scanDirectory);
+    try {
+      await cleanupTempDirectory(workspace.scanDirectory);
+    } catch {
+      // Cleanup failures should not mask the scan result or original scan error.
+    }
   }
 }
 

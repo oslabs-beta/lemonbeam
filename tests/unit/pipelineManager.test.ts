@@ -31,6 +31,7 @@
 //    Proves:
 //    - cleanup still runs if scanRepository throws
 //    - the original scan error still bubbles up
+//    - cleanup failures do not mask the original scan error
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { runScan } from "../../backend/src/pipelineManager.ts";
@@ -184,6 +185,23 @@ describe("runScan", () => {
     vi.mocked(validateRepository).mockResolvedValueOnce(repository);
     vi.mocked(downloadSnapshot).mockResolvedValueOnce(workspace.repositoryDirectory);
     vi.mocked(scanRepository).mockRejectedValueOnce(scanError);
+
+    await expect(runScan({ repositoryUrl, openRouterApiKey })).rejects.toBe(
+      scanError,
+    );
+
+    expect(cleanupTempDirectory).toHaveBeenCalledWith(workspace.scanDirectory);
+  });
+
+  it("does not mask the original scan error when cleanup also fails", async () => {
+    const scanError = new Error("scan failed");
+    const cleanupError = new Error("cleanup failed");
+
+    vi.mocked(createTempDirectory).mockResolvedValueOnce(workspace);
+    vi.mocked(validateRepository).mockResolvedValueOnce(repository);
+    vi.mocked(downloadSnapshot).mockResolvedValueOnce(workspace.repositoryDirectory);
+    vi.mocked(scanRepository).mockRejectedValueOnce(scanError);
+    vi.mocked(cleanupTempDirectory).mockRejectedValueOnce(cleanupError);
 
     await expect(runScan({ repositoryUrl, openRouterApiKey })).rejects.toBe(
       scanError,
