@@ -170,7 +170,7 @@ describe("runScan", () => {
     expect(createOrder).toBeLessThan(validateOrder);
   });
 
-  it("cleans up after a successful scan", async () => {
+  it("cleans up after guide generation on a successful scan", async () => {
     mockSuccessfulPipeline();
 
     await runScan({ repositoryUrl, openRouterApiKey });
