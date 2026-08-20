@@ -9,10 +9,12 @@
 // does NOT use GITHUB_TOKEN. This is a plain file download and isn't
 // subject to the REST API's rate limit at all (see DECISIONS.md > "GitHub
 // Access Uses a Personal Access Token for Validation Calls").
-import { mkdir, writeFile } from "node:fs/promises";
+import { createWriteStream } from "node:fs";
+import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import { x as extractTar } from "tar";
-
 
 type DownloadSnapshotInput = {
     owner: string; 
@@ -33,10 +35,16 @@ async function downloadSnapshot(input: DownloadSnapshotInput):Promise<string> {
 
     await mkdir(input.repositoryDirectory, { recursive: true });
 
-    const archivePath = join(input.scanDirectory, "snapshot.tar.gz"); 
-    const archiveBuffer = Buffer.from(await response.arrayBuffer()); 
+    const archivePath = join(input.scanDirectory, "snapshot.tar.gz");
 
-    await writeFile(archivePath, archiveBuffer);
+    if (!response.body) {
+        throw new Error("Failed to download repository snapshot");
+    }
+
+    await pipeline(
+        Readable.fromWeb(response.body as Parameters<typeof Readable.fromWeb>[0]),
+        createWriteStream(archivePath),
+    );
 
     await extractTar({
         file: archivePath,
