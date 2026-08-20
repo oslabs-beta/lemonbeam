@@ -1,11 +1,35 @@
-import type { Chunk } from "../types/chunk";
-import type { SkippedFile } from "../scan/scanService";
-import { generateGuideSection } from "./generateGuideSection";
+// Guide generator. Called by pipelineManager.ts, after scan/scanService.ts
+// returns { chunks, skippedFiles }.
+//
+// Orchestrates turning scanned code into a finished guide. Takes the chunks
+// and skipped-file list produced by scanning, gets the five main sections
+// written by one LLM call, appends a sixth section listing anything that
+// couldn't be analyzed, and hands back the finished markdown.
+//
+// Everything is done in one LLM call rather than five separate ones (one
+// per section) — simpler for the MVP, and it means GUIDE_SECTIONS' fixed
+// order isn't checked here; the prompt already tells the model what order
+// to write sections in, and this file just trusts that output rather than
+// parsing and re-validating it.
+//
+// Later, this could be split into five parallel calls (one per section) so
+// a slow or failing section doesn't hold up the others. That would need
+// Promise.allSettled instead of Promise.all, so one failure doesn't wipe
+// out the four sections that succeeded.
+// list below.
 
+import type { Chunk } from "../types/chunk.js";
+import type { SkippedFile } from "../scan/scanService.js";
+import { generateGuideSection } from "./generateGuideSection.js";
+
+// The full guide as one markdown string, ready to hand back to the caller.
 type GuideResult = {
     markdown: string;
 }
 
+// Builds the sixth section directly from skippedFiles rather than
+// summarizing it via another LLM call — the content is already fully
+// known, so generating it programmatically is cheaper and deterministic.
 function buildUncertaintiesSection(skippedFiles: SkippedFile[]): string {
   if (skippedFiles.length === 0) {
     return "## Uncertainties and Missing Information\n\nAll files were scanned successfully — there is nothing to report in this section.";
@@ -22,6 +46,9 @@ function buildUncertaintiesSection(skippedFiles: SkippedFile[]): string {
   ].join("\n");
 }
 
+// generateGuideSection failures (rate limits, OpenRouter errors,
+// malformed output) propagate uncaught. There is no retry and no
+// partial result: the guide is either fully generated or the request fails.
 async function generateGuide(
     chunks: Chunk[],
     skippedFiles: SkippedFile[],
@@ -39,48 +66,3 @@ async function generateGuide(
 export { generateGuide };
 export type { GuideResult };
 
-// Guide generator. Called by pipelineManager.ts, after scan/scanService.ts
-// returns { chunks, skippedFiles }.
-//
-// FOR THE MVP: this is ONE combined generation task, not five (see
-// DECISIONS.md > "One Combined Generation Call for the MVP, Five Tasks as a
-// Stretch Goal").
-//
-// This file does NOT retrieve evidence, build the prompt, call the LLM, or
-// validate citations — that's orchestration/generateGuideSection.ts's job
-// (separate task). This file only orchestrates that single call and
-// assembles the final result:
-//
-// 1. take the in-memory { chunks, skippedFiles } passed in from
-//    pipelineManager.ts (scanService.ts's output) — for the MVP this is a
-//    plain value, not a SQLite query (see DECISIONS.md > "In-Memory Chunk
-//    Storage for the MVP, SQLite as a Stretch Goal")
-// 2. call generateGuideSection.ts ONCE for the MVP's combined task
-// 3. use guideSections.ts's fixed order to place the returned text into
-//    the five-section structure (open question: whether/how this file
-//    validates the returned markdown's section order against
-//    GUIDE_SECTIONS, or just trusts the single LLM call already produced
-//    them in order per the prompt's instructions — not decided yet)
-// 4. assemble the sixth "Uncertainties and Missing Information" section
-//    from the skipped-files list passed in — built programmatically, NOT a
-//    second LLM call (see PROJECT_BRIEF.md > "Fixed Guide Format" > section 6)
-// 5. return the combined guide.markdown for pipelineManager.ts to hand
-//    back to routes/scans.ts
-//
-// If generateGuideSection.ts's call fails outright (rate limit, OpenRouter
-// error, malformed output), let that failure propagate — the whole scan
-// fails for the MVP, there is no partial guide. pipelineManager.ts maps
-// this to LLM_SERVICE_ERROR / EXTERNAL_SERVICE_ERROR. No retry logic
-// required.
-//
-// Not in scope here: orchestration/generateGuideSection.ts and
-// orchestration/guideSections.ts (separate tasks, this file depends on
-// both), and pipelineManager.ts calling this file (separate task, depends
-// on this one).
-//
-// STRETCH GOAL (not MVP): once "Five Separate Section-Generation Tasks" is
-// built, this file instead starts five tasks via
-// orchestration/generateGuideSection.ts, running them in PARALLEL (e.g.
-// Promise.allSettled, not Promise.all, so one failed section doesn't
-// cancel the other four), sorts them into the fixed order, and merges each
-// task's own uncertainty output with the skipped-files list.
