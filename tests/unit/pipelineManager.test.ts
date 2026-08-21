@@ -1,20 +1,20 @@
-// 1. sequences the scan and returns the trimmed sprint result
+// 1. sequences the scan and returns the guide result
 //    Proves:
 //    - generates a scanId
 //    - calls validateRepository with repositoryUrl
 //    - calls downloadSnapshot with repository metadata + workspace paths
 //    - calls scanRepository with repositoryDirectory + scanId
-//    - returns scanId + repository metadata + chunks + skippedFiles
-//    - does not return guide.markdown
+//    - calls generateGuide with chunks, skippedFiles, and openRouterApiKey
+//    - returns scanId + repository metadata + guide.markdown
 
 // 2. creates the temp workspace before GitHub validation
 //    Proves:
 //    - createTempDirectory runs before validateRepository
 //    - no GitHub request happens before workspace isolation exists
 
-// 3. cleans up after a successful scan
+// 3. cleans up after successful guide generation
 //    Proves:
-//    - cleanupTempDirectory is called after scanRepository succeeds
+//    - cleanupTempDirectory is called after generateGuide succeeds
 //    - cleanup receives the scan directory
 
 // 4. cleans up when repository validation fails
@@ -32,6 +32,12 @@
 //    - cleanup still runs if scanRepository throws
 //    - the original scan error still bubbles up
 //    - cleanup failures do not mask the original scan error
+//
+// 7. cleans up when guide generation fails
+//    Proves:
+//    - cleanup still runs if generateGuide throws
+//    - the original guide generation error still bubbles up
+//    - cleanup failures do not mask the original guide generation error
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { runScan } from "../../backend/src/pipelineManager.ts";
@@ -39,7 +45,11 @@ import { createTempDirectory } from "../../backend/src/utils/tempDirectory.ts";
 import { cleanupTempDirectory } from "../../backend/src/utils/cleanup.ts";
 import { validateRepository } from "../../backend/src/github/validateRepository.ts";
 import { downloadSnapshot } from "../../backend/src/github/downloadSnapshot.ts";
-import { scanRepository } from "../../backend/src/scan/scanService.ts";
+import { generateGuide } from "../../backend/src/orchestration/generateGuide.ts";
+import {
+  scanRepository,
+  type ScanResult,
+} from "../../backend/src/scan/scanService.ts";
 
 vi.mock("../../backend/src/utils/tempDirectory.ts", () => ({
   createTempDirectory: vi.fn(),
@@ -61,6 +71,10 @@ vi.mock("../../backend/src/scan/scanService.ts", () => ({
   scanRepository: vi.fn(),
 }));
 
+vi.mock("../../backend/src/orchestration/generateGuide.ts", () => ({
+  generateGuide: vi.fn(),
+}));
+
 const repositoryUrl = "https://github.com/example/project";
 const openRouterApiKey = "test-api-key";
 
@@ -77,9 +91,26 @@ const repository = {
   commitSha: "abc123",
 };
 
-const scanResult = {
-  chunks: [],
+const scanResult: ScanResult = {
+  chunks: [
+    {
+      scanId: "scan_test_123",
+      filePath: "README.md",
+      filePurpose: "docs",
+      language: "markdown",
+      parser: "markdown",
+      chunkKind: "markdown_section",
+      chunkName: "Overview",
+      startLine: 1,
+      endLine: 3,
+      text: "# Overview\n\nHello",
+    },
+  ],
   skippedFiles: [{ filePath: "large-file.txt", reason: "File too large" }],
+};
+
+const guide = {
+  markdown: "# Project Overview\n\nGenerated guide.",
 };
 
 function mockSuccessfulPipeline() {
@@ -87,6 +118,7 @@ function mockSuccessfulPipeline() {
   vi.mocked(validateRepository).mockResolvedValueOnce(repository);
   vi.mocked(downloadSnapshot).mockResolvedValueOnce(workspace.repositoryDirectory);
   vi.mocked(scanRepository).mockResolvedValueOnce(scanResult);
+  vi.mocked(generateGuide).mockResolvedValueOnce(guide);
 }
 
 describe("runScan", () => {
@@ -94,7 +126,7 @@ describe("runScan", () => {
     vi.clearAllMocks();
   });
 
-  it("sequences the scan and returns the trimmed sprint result", async () => {
+  it("sequences the scan and returns the guide result", async () => {
     mockSuccessfulPipeline();
 
     const result = await runScan({ repositoryUrl, openRouterApiKey });
@@ -113,13 +145,18 @@ describe("runScan", () => {
       workspace.repositoryDirectory,
       scanId,
     );
+    expect(generateGuide).toHaveBeenCalledWith(
+      scanResult.chunks,
+      scanResult.skippedFiles,
+      openRouterApiKey,
+    );
 
     expect(result).toEqual({
       scanId,
       repository,
-      scanResult,
+      guide,
     });
-    expect(result).not.toHaveProperty("guide");
+    expect(result).not.toHaveProperty("scanResult");
   });
 
   it("creates the temp workspace before GitHub validation", async () => {
@@ -133,7 +170,7 @@ describe("runScan", () => {
     expect(createOrder).toBeLessThan(validateOrder);
   });
 
-  it("cleans up after a successful scan", async () => {
+  it("cleans up after guide generation on a successful scan", async () => {
     mockSuccessfulPipeline();
 
     await runScan({ repositoryUrl, openRouterApiKey });
@@ -141,11 +178,11 @@ describe("runScan", () => {
     expect(cleanupTempDirectory).toHaveBeenCalledOnce();
     expect(cleanupTempDirectory).toHaveBeenCalledWith(workspace.scanDirectory);
 
-    const scanOrder = vi.mocked(scanRepository).mock.invocationCallOrder[0];
+    const guideOrder = vi.mocked(generateGuide).mock.invocationCallOrder[0];
     const cleanupOrder = vi.mocked(cleanupTempDirectory).mock
       .invocationCallOrder[0];
 
-    expect(scanOrder).toBeLessThan(cleanupOrder);
+    expect(guideOrder).toBeLessThan(cleanupOrder);
   });
 
   it("cleans up when repository validation fails", async () => {
@@ -161,6 +198,7 @@ describe("runScan", () => {
     expect(cleanupTempDirectory).toHaveBeenCalledWith(workspace.scanDirectory);
     expect(downloadSnapshot).not.toHaveBeenCalled();
     expect(scanRepository).not.toHaveBeenCalled();
+    expect(generateGuide).not.toHaveBeenCalled();
   });
 
   it("cleans up when snapshot download fails", async () => {
@@ -176,6 +214,7 @@ describe("runScan", () => {
 
     expect(cleanupTempDirectory).toHaveBeenCalledWith(workspace.scanDirectory);
     expect(scanRepository).not.toHaveBeenCalled();
+    expect(generateGuide).not.toHaveBeenCalled();
   });
 
   it("cleans up when repository scanning fails", async () => {
@@ -191,6 +230,7 @@ describe("runScan", () => {
     );
 
     expect(cleanupTempDirectory).toHaveBeenCalledWith(workspace.scanDirectory);
+    expect(generateGuide).not.toHaveBeenCalled();
   });
 
   it("does not mask the original scan error when cleanup also fails", async () => {
@@ -205,6 +245,41 @@ describe("runScan", () => {
 
     await expect(runScan({ repositoryUrl, openRouterApiKey })).rejects.toBe(
       scanError,
+    );
+
+    expect(cleanupTempDirectory).toHaveBeenCalledWith(workspace.scanDirectory);
+    expect(generateGuide).not.toHaveBeenCalled();
+  });
+
+  it("cleans up when guide generation fails", async () => {
+    const guideError = new Error("guide generation failed");
+
+    vi.mocked(createTempDirectory).mockResolvedValueOnce(workspace);
+    vi.mocked(validateRepository).mockResolvedValueOnce(repository);
+    vi.mocked(downloadSnapshot).mockResolvedValueOnce(workspace.repositoryDirectory);
+    vi.mocked(scanRepository).mockResolvedValueOnce(scanResult);
+    vi.mocked(generateGuide).mockRejectedValueOnce(guideError);
+
+    await expect(runScan({ repositoryUrl, openRouterApiKey })).rejects.toBe(
+      guideError,
+    );
+
+    expect(cleanupTempDirectory).toHaveBeenCalledWith(workspace.scanDirectory);
+  });
+
+  it("does not mask the original guide generation error when cleanup also fails", async () => {
+    const guideError = new Error("guide generation failed");
+    const cleanupError = new Error("cleanup failed");
+
+    vi.mocked(createTempDirectory).mockResolvedValueOnce(workspace);
+    vi.mocked(validateRepository).mockResolvedValueOnce(repository);
+    vi.mocked(downloadSnapshot).mockResolvedValueOnce(workspace.repositoryDirectory);
+    vi.mocked(scanRepository).mockResolvedValueOnce(scanResult);
+    vi.mocked(generateGuide).mockRejectedValueOnce(guideError);
+    vi.mocked(cleanupTempDirectory).mockRejectedValueOnce(cleanupError);
+
+    await expect(runScan({ repositoryUrl, openRouterApiKey })).rejects.toBe(
+      guideError,
     );
 
     expect(cleanupTempDirectory).toHaveBeenCalledWith(workspace.scanDirectory);
