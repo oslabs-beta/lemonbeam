@@ -1,0 +1,17 @@
+// TEMPLATE — this is not valid JSON yet. Delete this whole comment block once filled in.
+// Repo: tj/commander.js — https://github.com/tj/commander.js
+// Tester: ttj
+//
+// Steps (full detail in e2e-results/README.md):
+// 1. Run this repo through the frontend: paste the URL above + your OpenRouter key, submit.
+// 2. Open DevTools > Network tab > click the "scans" request.
+// 3. Timing tab: copy the bold total (ms) -> paste as "wallClockMs" below.
+// 4. Response tab (not Preview!): copy the ENTIRE response -> paste it in place of
+//    the empty "response" object below, exactly as copied, untouched.
+// 5. Delete this whole comment block so the file is valid JSON.
+
+{
+  "tester": "ttj",
+  "wallClockMs": 0,
+  "response": {}
+}
