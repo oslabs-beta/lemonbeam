@@ -51,7 +51,6 @@ router.post(
             };
             return next();
             } catch (error: any) {
-            console.error("DEBUG CAUGHT ERROR:", error);
 
             // Step 5: Catch and map LLM Authentication Failures -> 401 Unauthorized
             if (
@@ -112,12 +111,15 @@ router.post(
             // Step 6: Catch and map External Service / LLM Failures -> 502 Bad Gateway
             if (
                 error?.code === "LLM_SERVICE_ERROR" ||
-                error?.code === "GITHUB_SERVICE_ERROR"
+                error?.code === "GITHUB_SERVICE_ERROR" ||
+                error?.code === "Failed to download repository snapshot"
             ) {
                 res.locals.status = 502;
                 res.locals.data = {
                 error: {
-                    code: error.code || "EXTERNAL_SERVICE_ERROR",
+                    code: error?.code === "LLM_SERVICE_ERROR" ?
+                    "LLM_SERVICE_ERROR" : 
+                    "GITHUB_SERVICE_ERROR",
                     message:
                     "LemonBeam could not complete the scan because an external service failed.",
                 },
