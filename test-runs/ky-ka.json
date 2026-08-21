@@ -1,17 +1,18 @@
-// TEMPLATE — this is not valid JSON yet. Delete this whole comment block once filled in.
-// Repo: sindresorhus/ky — https://github.com/sindresorhus/ky (SHARED — everyone runs this one)
-// Tester: ka
-//
-// Steps (full detail in test-runs/README.md):
-// 1. Run this repo through the frontend: paste the URL above + your OpenRouter key, submit.
-// 2. Open DevTools > Network tab > click the "scans" request.
-// 3. Timing tab: copy the bold total (ms) -> paste as "wallClockMs" below.
-// 4. Response tab (not Preview!): copy the ENTIRE response -> paste it in place of
-//    the empty "response" object below, exactly as copied, untouched.
-// 5. Delete this whole comment block so the file is valid JSON.
 
 {
   "tester": "ka",
-  "wallClockMs": 0,
-  "response": {}
+  "wallClockMs": 10.66,
+  "response": {
+    "scanId": "scan_1334a608-1e99-4973-a359-4ee661e2ee87",
+    "repository": {
+        "owner": "sindresorhus",
+        "name": "ky",
+        "url": "https://github.com/sindresorhus/ky",
+        "defaultBranch": "main",
+        "commitSha": "3419113b48e034fdcf8fa6bd3be3da7b3d0d758f"
+    },
+    "guide": {
+        "markdown": "## Project Overview\n\nThe repository appears to be for \"Ky,\" described as a \"Tiny and elegant HTTP client based on the Fetch API\" [readme.md:1-42]. It aims to simplify making HTTP requests with various enhancements over plain `fetch`, such as retries, error handling, hooks, progress tracking, and more advanced configuration options [readme.md:43-57]. It targets modern browsers, Node.js, Bun, and Deno environments and is likely designed for usage in both server-side and client-side JavaScript applications [readme.md:1-42]. Key technologies include the Fetch API and TypeScript, as evident from the TypeScript-based configuration and utility types [package.json][readme.md:43-57]. Entry points into the codebase are likely designated by `ky.get`, `ky.post`, and other method functions that mirror HTTP methods [readme.md:170-175].\n\n## Setup / Installation\n\nKy requires Node.js version 22 or later [readme.md:1857-1857]. The setup can be performed by installing the \"ky\" package using npm: \n\n```sh\nnpm install ky\n```\n\n[readme.md:58-66]. Further configuration may involve setting up environment variables or using specific configuration options, especially when used in Node.js with HTTP/2 or proxies. For example, proxy support can be configured via environment variables, Node.js flags, or custom dispatcher options [readme.md:1471-1521].\n\n## Running Locally\n\nLocal development typically involves using the provided scripts from the package manifest. The project’s scripts suggest building, testing, and debugging capabilities:\n\n- Build: `npm run build` (executes TypeScript compilation using `tsc` targeting the distribution directory) [package.json:6-10].\n- Test: `npm test` (runs the tests specified by the `ava` command) [package.json:6-10].\n- Debug: `PWDEBUG=1 ava --timeout=2m` (sets the environment variable for debugging and executes tests with a timeout setting) [package.json:6-10].\n- Release: `np` (for handling package publishing) [package.json:6-10].\n\nPort specifics or local server usage are not explicitly included in the provided evidence.\n\n## Project Structure\n\nThe project structure is implied by files related to TypeScript configuration, such as `tsconfig.json` and `tsconfig.dist.json`, which outline paths for source and distribution directories [tsconfig.dist.json][tsconfig.json]. There are multiple core directories and utility files defining constants, error types, and helpers for request handling, albeit specifics on file hierarchy or organization are not detailed in the evidence [source/core/constants.ts:16-19][source/errors/HTTPError.ts:15-34]. Key files like `readme.md` provide usage examples and extended configuration options [readme.md:73-112][readme.md:943-1028], indicating strong documentation integration for facilitating developer onboarding.\n\n## Testing\n\nThe test framework appears to be `ava`, with commands setup to initiate tests [package.json:6-10]. The tests may cover API response handling, retry scenarios, custom request handling, and other `ky` features [test/stream.ts:7-907][test/http-error.ts:17-582]. There is CI integration configured to run tests on various node versions using GitHub Actions [package.json:6-10][.github/workflows/main.yml:1-24]. It is likely that tests are located alongside source files in a conventional structure and involve mock HTTP servers for testing network behaviors [test/helpers/create-http-test-server.ts:21-59]. However, specific test file locations beyond their logical organization and naming conventions aren’t evident in the provided chunks.\n\n## Uncertainties and Missing Information\n\nThe following files could not be analyzed and may be missing from this guide:\n\n- `source/core/Ky.ts` — Invalid argument\n- `test/hooks.ts` — Invalid argument\n- `test/main.ts` — Invalid argument\n- `test/retry.ts` — Invalid argument"
+    }
+}
 }
