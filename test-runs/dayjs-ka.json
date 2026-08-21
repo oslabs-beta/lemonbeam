@@ -1,8 +1,8 @@
 // TEMPLATE — this is not valid JSON yet. Delete this whole comment block once filled in.
-// Repo: tj/commander.js — https://github.com/tj/commander.js
-// Tester: ttj
+// Repo: iamkun/dayjs — https://github.com/iamkun/dayjs
+// Tester: ka
 //
-// Steps (full detail in e2e-results/README.md):
+// Steps (full detail in test-runs/README.md):
 // 1. Run this repo through the frontend: paste the URL above + your OpenRouter key, submit.
 // 2. Open DevTools > Network tab > click the "scans" request.
 // 3. Timing tab: copy the bold total (ms) -> paste as "wallClockMs" below.
@@ -11,7 +11,7 @@
 // 5. Delete this whole comment block so the file is valid JSON.
 
 {
-  "tester": "ttj",
+  "tester": "ka",
   "wallClockMs": 0,
   "response": {}
 }

@@ -1,8 +1,8 @@
 // TEMPLATE — this is not valid JSON yet. Delete this whole comment block once filled in.
-// Repo: expressjs/express — https://github.com/expressjs/express (SHARED — everyone runs this one)
+// Repo: sindresorhus/got — https://github.com/sindresorhus/got (SHARED — everyone runs this one)
 // Tester: jd
 //
-// Steps (full detail in e2e-results/README.md):
+// Steps (full detail in test-runs/README.md):
 // 1. Run this repo through the frontend: paste the URL above + your OpenRouter key, submit.
 // 2. Open DevTools > Network tab > click the "scans" request.
 // 3. Timing tab: copy the bold total (ms) -> paste as "wallClockMs" below.

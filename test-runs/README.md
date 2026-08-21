@@ -74,10 +74,10 @@ It just means: **how many milliseconds actually passed, in the real world, betwe
 Create a file at:
 
 ```text
-e2e-results/<repo-name>-<your initials>.json
+test-runs/<repo-name>-<your initials>.json
 ```
 
-Example: `e2e-results/ky-jd.json`
+Example: `test-runs/ky-jd.json`
 
 Inside that file, structure it like this — **metadata on top, the raw copied response nested underneath, untouched:**
 
