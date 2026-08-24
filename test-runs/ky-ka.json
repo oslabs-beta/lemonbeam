@@ -1,7 +1,11 @@
 
 {
   "tester": "ka",
-  "wallClockMs": 10.66,
+  "model": "openai/gpt-4o",
+  "provider": "Azure",
+  "costUsd": 0.259,
+  "usage": { "promptTokens": 100718, "completionTokens": 769 },
+  "wallClockSeconds": 10.66,
   "response": {
     "scanId": "scan_1334a608-1e99-4973-a359-4ee661e2ee87",
     "repository": {

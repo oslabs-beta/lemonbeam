@@ -1,7 +1,11 @@
 
 {
   "tester": "ka",
-  "wallClockMs": 12.49,
+  "model": "openai/gpt-4o",
+  "provider": "OpenAI",
+  "costUsd": 0.196,
+  "usage": { "promptTokens": 75895, "completionTokens": 643 },
+  "wallClockSeconds": 12.49,
   "response": { "scanId": "scan_fc1d08c9-5d0c-4ecf-80ef-2f353316a518",
     "repository": {
         "owner": "chalk",
