@@ -1,17 +1,18 @@
-// TEMPLATE — this is not valid JSON yet. Delete this whole comment block once filled in.
-// Repo: sindresorhus/ky — https://github.com/sindresorhus/ky (SHARED — everyone runs this one)
-// Tester: ttj
-//
-// Steps (full detail in test-runs/README.md):
-// 1. Run this repo through the frontend: paste the URL above + your OpenRouter key, submit.
-// 2. Open DevTools > Network tab > click the "scans" request.
-// 3. Timing tab: copy the bold total (ms) -> paste as "wallClockMs" below.
-// 4. Response tab (not Preview!): copy the ENTIRE response -> paste it in place of
-//    the empty "response" object below, exactly as copied, untouched.
-// 5. Delete this whole comment block so the file is valid JSON.
 
 {
   "tester": "ttj",
-  "wallClockMs": 0,
-  "response": {}
+  "wallClockMs": 6.69,
+  "response": {
+    "scanId": "scan_1d383059-1371-4f15-a666-62b84a2f1eb8",
+    "repository": {
+      "owner": "sindresorhus",
+      "name": "ky",
+      "url": "https://github.com/sindresorhus/ky",
+      "defaultBranch": "main",
+      "commitSha": "3419113b48e034fdcf8fa6bd3be3da7b3d0d758f"
+    },
+    "guide": {
+      "markdown": "## Project Overview\n\nThis repository contains \"Ky\", a tiny and elegant HTTP client based on the Fetch API. It is designed for use with modern browsers, Node.js, Bun, and Deno. Ky offers a simpler API compared to fetch and provides various features such as method shortcuts, automatic error handling, retries, and more [readme.md:43-57]. The main entry point for using Ky is through its API, which allows performing HTTP requests using simple commands like `ky.get`, `ky.post`, and `.json()` for JSON responses [readme.md:115-169][source/index.ts:10-32]. \n\n## Setup / Installation\n\nTo install Ky, use the npm package manager with the following command: `npm install ky` [readme.md:58-66]. The only prerequisite specified is that the project requires Node.js version 22 or higher, as specified in the engines field [package.json]. The evidence does not specify additional setup instructions, environment variables, or dependency installations beyond the initial package installation.\n\n## Running Locally\n\nThe repository does not provide specific development commands or scripts for running the project locally in a development mode, nor does it indicate the use of a local development server with designated ports. The primary usage of Ky is demonstrated through method calls in JavaScript or TypeScript files, which indicates that running the project locally likely involves integrating Ky into node or browser environments that support ES modules [readme.md:171-171].\n\n## Project Structure\n\nThe project structure is not extensively detailed in the evidence provided. However, it can be inferred that the primary structure includes source directories where the core implementation resides, as the `tsconfig.dist.json` file specifies \"source\" as the root directory [tsconfig.dist.json]. Additional important directories include `test`, which may house testing files and related configuration, and `distribution`, which likely contains the compiled output for distribution [tsconfig.dist.json][.gitignore]. \n\n## Testing\n\nThe project uses `ava` as its test framework as noted in the scripts section of the package.json, with testing commands designed to run tests primarily using the `npm test` command [package.json]. A continuous integration workflow is configured to run tests across different node versions (latest, 24, 22) using the `npm test` command [/.github/workflows/main.yml]. The project appears to have extensive test coverage with test files such as `test/base-url.ts` and `test/body-size.ts` indicating a comprehensive suite of tests for different functionalities.\n\n## Uncertainties and Missing Information\n\nThe following files could not be analyzed and may be missing from this guide:\n\n- `source/core/Ky.ts` — Invalid argument\n- `test/hooks.ts` — Invalid argument\n- `test/main.ts` — Invalid argument\n- `test/retry.ts` — Invalid argument"
+    }
+  }
 }
