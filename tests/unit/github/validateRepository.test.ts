@@ -69,14 +69,12 @@ describe("validateRepository", () => {
             })
         )
         .mockResolvedValueOnce(
-            mockJsonResponse(200, {
-                truncated: false,
-                tree: [
-                { type: "blob", path: "package.json" },
-                { type: "blob", path: "src/index.ts" },
-                ],
+            mockRootPackageJsonResponse({
+                name: "project",
             }),
-            );
+        )
+        .mockResolvedValueOnce(mockMissingGitHubFileResponse())
+        .mockResolvedValueOnce(mockMissingGitHubFileResponse());
 
             globalThis.fetch = fetchMock;
 
@@ -113,11 +111,12 @@ describe("validateRepository", () => {
             }),
             )
             .mockResolvedValueOnce(
-            mockJsonResponse(200, {
-                truncated: false,
-                tree: [{ type: "blob", path: "package.json" }],
+            mockRootPackageJsonResponse({
+                name: "project",
             }),
-            );
+            )
+            .mockResolvedValueOnce(mockMissingGitHubFileResponse())
+            .mockResolvedValueOnce(mockMissingGitHubFileResponse());
 
         globalThis.fetch = fetchMock;
 
