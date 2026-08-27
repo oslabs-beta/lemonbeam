@@ -1,0 +1,18 @@
+{
+    "tester": "ttj",
+    "source": "chatgpt",
+    "promptUsed": "Here's the full source of a GitHub repository — write a guide to help a new contributor understand what it does, set it up, run it, understand its structure, and run its tests.",
+    "inputMethod": "repomix-flattened-file-upload",
+    "response": {
+        "repository": {
+        "owner": "sindresorhus",
+        "name": "ky",
+        "url": "https://github.com/sindresorhus/ky",
+        "defaultBranch": "main",
+        "commitSha": "3419113b48e034fdcf8fa6bd3be3da7b3d0d758f"
+        },
+        "guide": {
+        "markdown": "<paste ChatGPT's raw output here, untouched>"
+        }
+    }
+}
