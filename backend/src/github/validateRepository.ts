@@ -407,12 +407,23 @@ async function rejectDeclaredMonorepo(
     throwUnsupportedMonorepo(["Root package.json declares workspaces."]);
   }
 
-  if (await rootFileExists(repositoryApiUrl, commitSha, "pnpm-workspace.yaml")) {
-    throwUnsupportedMonorepo(["Root pnpm-workspace.yaml exists."]);
+  const [hasPnpmWorkspace, hasLernaConfig] = await Promise.all([
+    rootFileExists(repositoryApiUrl, commitSha, "pnpm-workspace.yaml"),
+    rootFileExists(repositoryApiUrl, commitSha, "lerna.json"),
+  ]);
+
+  const details: string[] = [];
+
+  if (hasPnpmWorkspace) {
+    details.push("Root pnpm-workspace.yaml exists.");
   }
 
-  if (await rootFileExists(repositoryApiUrl, commitSha, "lerna.json")) {
-    throwUnsupportedMonorepo(["Root lerna.json exists."]);
+  if (hasLernaConfig) {
+    details.push("Root lerna.json exists.");
+  }
+
+  if (details.length > 0) {
+    throwUnsupportedMonorepo(details);
   }
 }
 
