@@ -19,18 +19,11 @@
 // Personal Access Token for Validation Calls". This is a normal shared
 // server credential, NOT per-user/BYOK like the OpenRouter key, since it
 // only ever reads public data and costs nothing to use.
+import { Buffer } from "node:buffer";
+
 const MAX_REPOSITORY_SIZE_KB = 50 * 1024;
 
 const SUPPORTED_PRIMARY_LANGUAGES = new Set(["JavaScript", "TypeScript"]);
-
-const SKIPPED_DIRECTORY_NAMES = new Set([
-  "node_modules",
-  ".git",
-  "dist",
-  "build",
-  ".next",
-  "coverage",
-]);
 
 type ValidatedRepository = {
   owner: string;
@@ -145,22 +138,7 @@ async function validateRepository(
 
   const commitSha = parseBranchCommitSha(branchResponse.data);
 
-  const treeApiUrl = `${repositoryApiUrl}/git/trees/${commitSha}?recursive=1`;
-  const treeResponse = await requestGitHubJson(treeApiUrl);
-
-    if (treeResponse.status === 403) {
-        throwForbiddenOrRateLimit(treeResponse.headers);
-    }
-
-    if (!treeResponse.ok) {
-        throw new RepositoryValidationError(
-        502,
-        "GITHUB_SERVICE_ERROR",
-        "GitHub failed while checking repository structure.",
-        );
-    }
-
-  rejectMonorepo(treeResponse.data);
+  await rejectDeclaredMonorepo(repositoryApiUrl, commitSha);
 
   return {
     owner: repository.owner,
@@ -419,66 +397,158 @@ function parseBranchCommitSha(data: unknown): string {
   return data.commit.sha;
 }
 
+async function rejectDeclaredMonorepo(
+  repositoryApiUrl: string,
+  commitSha: string,
+): Promise<void> {
+  const rootPackageJson = await fetchRootPackageJson(repositoryApiUrl, commitSha);
 
-// INPUT:
-// raw JSON from GET /repos/{owner}/{repo}/git/trees/{commitSha}?recursive=1
-//
-// OUTPUT:
-// void if repo is acceptable
-//
-// JOB:
-// Looks for nested package.json files.
-// If there is a package.json somewhere other than the root,
-// LemonBeam treats that as likely monorepo structure and rejects it.
-//
-// Also rejects if GitHub says the tree response was truncated.
-function rejectMonorepo(data: unknown): void {
-  if (!isRecord(data) || !Array.isArray(data.tree)) {
-    throwGitHubResponseError();
+  if (hasWorkspaceDeclaration(rootPackageJson)) {
+    throwUnsupportedMonorepo(["Root package.json declares workspaces."]);
   }
 
-  if (data.truncated === true) {
-    throw new RepositoryValidationError(
-      413,
-      "REPOSITORY_TOO_LARGE",
-      "This repository exceeds the supported scan size.",
-      ["GitHub tree response was truncated."],
-    );
+  const [hasPnpmWorkspace, hasLernaConfig] = await Promise.all([
+    rootFileExists(repositoryApiUrl, commitSha, "pnpm-workspace.yaml"),
+    rootFileExists(repositoryApiUrl, commitSha, "lerna.json"),
+  ]);
+
+  const details: string[] = [];
+
+  if (hasPnpmWorkspace) {
+    details.push("Root pnpm-workspace.yaml exists.");
   }
 
-  const packageJsonPaths = data.tree
-    .filter(isRecord)
-    .filter((entry) => entry.type === "blob")
-    .map((entry) => entry.path)
-    .filter((path): path is string => typeof path === "string")
-    .filter((path) => path === "package.json" || path.endsWith("/package.json"))
-    .filter((path) => !isSkippedPath(path));
+  if (hasLernaConfig) {
+    details.push("Root lerna.json exists.");
+  }
 
-  const nestedPackageJsonPaths = packageJsonPaths.filter(
-    (path) => path !== "package.json",
-  );
-
-  if (nestedPackageJsonPaths.length > 0) {
-    throw new RepositoryValidationError(
-      422,
-      "UNSUPPORTED_MONOREPO",
-      "Monorepositories are not currently supported.",
-      nestedPackageJsonPaths.map((path) => `Nested package.json: ${path}`),
-    );
+  if (details.length > 0) {
+    throwUnsupportedMonorepo(details);
   }
 }
 
-// INPUT:
-// path: repo-relative file path from GitHub tree
-//
-// OUTPUT:
-// boolean
-//
-// JOB:
-// Returns true if the path lives inside a folder we ignore,
-// like node_modules, .git, dist, build, .next, or coverage.
-function isSkippedPath(path: string): boolean {
-  return path.split("/").some((part) => SKIPPED_DIRECTORY_NAMES.has(part));
+async function fetchRootPackageJson(
+  repositoryApiUrl: string,
+  commitSha: string,
+): Promise<unknown> {
+  const response = await requestGitHubJson(
+    buildRootContentsApiUrl(repositoryApiUrl, "package.json", commitSha),
+  );
+
+  if (response.status === 403) {
+    if (response.headers.get("x-ratelimit-remaining") === "0") {
+      throwForbiddenOrRateLimit(response.headers);
+    }
+
+    throw new RepositoryValidationError(
+      502,
+      "GITHUB_SERVICE_ERROR",
+      "GitHub returned 403 while checking root package.json.",
+    );
+  }
+
+  if (response.status === 404) {
+    return undefined;
+  }
+
+  if (!response.ok) {
+    throw new RepositoryValidationError(
+      502,
+      "GITHUB_SERVICE_ERROR",
+      "GitHub failed while checking root package.json.",
+    );
+  }
+
+  const content = parseGitHubFileContent(response.data);
+
+  try {
+    return JSON.parse(content);
+  } catch {
+    return undefined;
+  }
+}
+
+async function rootFileExists(
+  repositoryApiUrl: string,
+  commitSha: string,
+  path: string,
+): Promise<boolean> {
+  const response = await requestGitHubJson(
+    buildRootContentsApiUrl(repositoryApiUrl, path, commitSha),
+  );
+
+  if (response.status === 403) {
+    if (response.headers.get("x-ratelimit-remaining") === "0") {
+      throwForbiddenOrRateLimit(response.headers);
+    }
+
+    throw new RepositoryValidationError(
+      502,
+      "GITHUB_SERVICE_ERROR",
+      `GitHub returned 403 while checking ${path}.`,
+    );
+  }
+
+  if (response.status === 404) {
+    return false;
+  }
+
+  if (!response.ok) {
+    throw new RepositoryValidationError(
+      502,
+      "GITHUB_SERVICE_ERROR",
+      `GitHub failed while checking ${path}.`,
+    );
+  }
+
+  return true;
+}
+
+function buildRootContentsApiUrl(
+  repositoryApiUrl: string,
+  path: string,
+  commitSha: string,
+): string {
+  return `${repositoryApiUrl}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(commitSha)}`;
+}
+
+function parseGitHubFileContent(data: unknown): string {
+  if (!isRecord(data) || typeof data.content !== "string") {
+    throwGitHubResponseError();
+  }
+
+  return Buffer.from(data.content.replace(/\s/g, ""), "base64").toString("utf8");
+}
+
+function hasWorkspaceDeclaration(packageJson: unknown): boolean {
+  if (!isRecord(packageJson)) {
+    return false;
+  }
+
+  const workspaces = packageJson.workspaces;
+
+  if (Array.isArray(workspaces)) {
+    return hasNonEmptyString(workspaces);
+  }
+
+  if (isRecord(workspaces) && Array.isArray(workspaces.packages)) {
+    return hasNonEmptyString(workspaces.packages);
+  }
+
+  return false;
+}
+
+function hasNonEmptyString(values: unknown[]): boolean {
+  return values.some((value) => typeof value === "string" && value.trim().length > 0);
+}
+
+function throwUnsupportedMonorepo(details: string[]): never {
+  throw new RepositoryValidationError(
+    422,
+    "UNSUPPORTED_MONOREPO",
+    "Monorepositories are not currently supported.",
+    details,
+  );
 }
 
 
