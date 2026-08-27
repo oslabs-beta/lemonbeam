@@ -30,53 +30,71 @@ async function scanRepository(repoLocalPath: string, scanId: string): Promise<Sc
 {
     const filePaths = await discoverFiles(repoLocalPath);
 
+    // Process all files in parallel using Promise.all
+    const results = await Promise.all(
+        filePaths.map(async (filePath): Promise<{ chunks: Chunk[]; skipped?: SkippedFile }> => {
+            // A read failure (permissions, a file that vanished between
+            // discovery and now, bad encoding) skips just this file instead of
+            // aborting the whole scan — one bad file must never take down an
+            // otherwise-analyzable repository.
+            let content: string;
+            try {
+                content = await readFile(path.join(repoLocalPath, filePath), "utf-8");
+            } catch (error) {
+                return {
+                    chunks: [],
+                    skipped: {
+                        filePath,
+                        reason: error instanceof Error ? error.message : String(error),
+                    },
+                };
+            }
+
+            // No try/catch needed here: classifyFile only inspects the path
+            // string (no disk I/O), so it can't throw.
+            const { filePurpose, language } = classifyFile(filePath);
+
+            // filePath stays repo-relative here (as returned by discoverFiles),
+            // not the absolute path used to read it above — chunks must cite
+            // paths a user can find in their own copy of the repo, not this
+            // machine's local filesystem layout.
+            const chunkInput: ChunkInput = {
+                scanId,
+                filePath,
+                content,
+                filePurpose,
+                language,
+            };
+
+            // chunkFile never throws to its caller — it always returns a
+            // ChunkResult, so the only branch needed here is ok/not-ok, not a
+            // try/catch.
+            const result = chunkFile(chunkInput);
+
+            if (!result.ok) {
+                return {
+                    chunks: [],
+                    skipped: { filePath: result.filePath, reason: result.reason },
+                };
+            }
+
+            return { chunks: result.chunks };
+        })
+    );
+
+    // Aggregate results from parallel execution
     const chunks: Chunk[] = [];
     const skippedFiles: SkippedFile[] = [];
 
-    for (const filePath of filePaths) {
-        // A read failure (permissions, a file that vanished between
-        // discovery and now, bad encoding) skips just this file instead of
-        // aborting the whole scan — one bad file must never take down an
-        // otherwise-analyzable repository.
-        let content: string;
-        try {
-            content = await readFile(path.join(repoLocalPath, filePath), "utf-8");
-        } catch (error) {
-            skippedFiles.push({
-                filePath,
-                reason: error instanceof Error ? error.message : String(error),
-            });
-            continue;
+    for (const res of results) {
+        if (res.skipped) {
+            skippedFiles.push(res.skipped);
         }
-
-        // No try/catch needed here: classifyFile only inspects the path
-        // string (no disk I/O), so it can't throw.
-        const { filePurpose, language } = classifyFile(filePath);
-
-        // filePath stays repo-relative here (as returned by discoverFiles),
-        // not the absolute path used to read it above — chunks must cite
-        // paths a user can find in their own copy of the repo, not this
-        // machine's local filesystem layout.
-        const chunkInput: ChunkInput = {
-            scanId,
-            filePath,
-            content,
-            filePurpose,
-            language,
-        };
-
-        // chunkFile never throws to its caller — it always returns a
-        // ChunkResult, so the only branch needed here is ok/not-ok, not a
-        // try/catch.
-        const result = chunkFile(chunkInput);
-
-        if (!result.ok) {
-            skippedFiles.push({ filePath: result.filePath, reason: result.reason });
-            continue;
+        if (res.chunks.length > 0) {
+            chunks.push(...res.chunks);
         }
-
-        chunks.push(...result.chunks);
     }
+
     return { chunks, skippedFiles }
 }
 

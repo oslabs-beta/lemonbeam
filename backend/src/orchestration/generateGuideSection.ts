@@ -67,7 +67,7 @@ async function generateGuideSection({
         messages,
         });
 
-        const text = response.choices[0]?.message?.content || "";
+        const text = response?.choices?.[0]?.message?.content || "";
 
         //! TODO: Validate citations according to your classmate's format instructions
         const citations: any[] = [];
