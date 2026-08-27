@@ -364,6 +364,44 @@ describe("validateRepository", () => {
         });
     });
 
+    it("throws UNSUPPORTED_MONOREPO when root package.json declares workspace packages", async () => {
+        const fetchMock = vi
+            .fn()
+            .mockResolvedValueOnce(
+                mockJsonResponse(200, {
+                    owner: { login: "example" },
+                    name: "monorepo",
+                    html_url: "https://github.com/example/monorepo",
+                    default_branch: "main",
+                    language: "TypeScript",
+                    size: 1200,
+                    private: false,
+                }),
+            )
+            .mockResolvedValueOnce(
+                mockJsonResponse(200, {
+                    commit: { sha: "abc123" },
+                }),
+            )
+            .mockResolvedValueOnce(
+                mockRootPackageJsonResponse({
+                    name: "monorepo",
+                    workspaces: {
+                        packages: ["packages/*"],
+                    },
+                }),
+            );
+
+        globalThis.fetch = fetchMock;
+
+        await expect(
+            validateRepository("https://github.com/example/monorepo"),
+        ).rejects.toMatchObject({
+            status: 422,
+            code: "UNSUPPORTED_MONOREPO",
+        });
+    });
+
     it("throws UNSUPPORTED_MONOREPO when root pnpm-workspace.yaml exists", async () => {
         const fetchMock = vi
             .fn()
