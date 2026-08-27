@@ -144,9 +144,9 @@ function App() {
           </div>
 
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-1">
-            <p className="text-xs text-zinc-500">
-              Public GitHub repositories only · API key is sent only for this
-              request and is never stored
+            {/* THIS PARAGRAPH TEXT WAS UPDATED TO YELLOW AND SLIGHTLY LARGER */}
+            <p className="text-sm text-[var(--color-yellow)] opacity-80">
+              Public GitHub repositories only · API key is never stored
             </p>
             <button
               type="submit"
