@@ -135,6 +135,10 @@ function App() {
                 id="api-key"
                 type="password"
                 required
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="none"
+                spellCheck={false}
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="sk-or-v1-..."
@@ -144,9 +148,9 @@ function App() {
           </div>
 
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-1">
-            {/* THIS PARAGRAPH TEXT WAS UPDATED TO YELLOW AND SLIGHTLY LARGER */}
-            <p className="text-sm text-[var(--color-yellow)] opacity-80">
-              Public GitHub repositories only · API key is never stored
+            <p className="text-sm text-[var(--color-yellow)] opacity-80 whitespace-nowrap">
+              Public GitHub repositories only · API key is sent only for this
+              request and is never stored
             </p>
             <button
               type="submit"
