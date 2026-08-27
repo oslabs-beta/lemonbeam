@@ -81,6 +81,68 @@ let resolvedName: string;
   }
 }
 
+// Placeholder token estimator. Swap for the real tiktoken-based
+// estimateTokens() once it lands
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
+const MAX_TOKENS_PER_CHUNK = 500;
+
+// How many consecutive body statements get grouped into one split chunk.
+// Fixed count, not token-aware — simpler than packing by running token
+// total, at the cost of not guaranteeing every split chunk stays under
+// MAX_TOKENS_PER_CHUNK if a group's statements happen to be large.
+const STATEMENTS_PER_CHUNK = 3;
+
+// OSP-43: if a matched node's chunk is over the token cap, split it into
+// chunks of STATEMENTS_PER_CHUNK consecutive body statements each,
+// instead of emitting the whole thing as one arbitrarily large chunk.
+// `fullChunk` is the chunk already built for `node` (so name resolution
+// and constructor relabeling are already applied) — this only decides
+// whether to keep it as-is or break it apart.
+function splitOversizedChunk(
+  node: Parser.SyntaxNode,
+  fullChunk: Chunk,
+  input: ChunkInput,
+): Chunk[] {
+  if (estimateTokens(fullChunk.text) <= MAX_TOKENS_PER_CHUNK) {
+    return [fullChunk];
+  }
+
+  const body = node.childForFieldName("body");
+
+  if (body === null || body.namedChildren.length === 0) {
+    return [fullChunk];
+  }
+
+  const splitChunks: Chunk[] = [];
+
+  for (let i = 0; i < body.namedChildren.length; i += STATEMENTS_PER_CHUNK) {
+    const firstChild = body.namedChildren[i];
+    const lastIndex = Math.min(i + STATEMENTS_PER_CHUNK - 1, body.namedChildren.length - 1);
+    const lastChild = body.namedChildren[lastIndex];
+    const partName = fullChunk.chunkName + " (part " + (splitChunks.length + 1) + ")";
+
+    splitChunks.push({
+      scanId: input.scanId,
+      filePath: input.filePath,
+      filePurpose: input.filePurpose,
+      language: input.language,
+      parser: "tree-sitter",
+      chunkKind: fullChunk.chunkKind,
+      chunkName: partName,
+      startLine: firstChild.startPosition.row + 1,
+      endLine: lastChild.endPosition.row + 1,
+      startColumn: firstChild.startPosition.column,
+      endColumn: lastChild.endPosition.column,
+      text: input.content.slice(firstChild.startIndex, lastChild.endIndex),
+    });
+  }
+
+  return splitChunks;
+}
+
 // Recursively visits every node in the syntax tree, one level at a time.
 function walk(node: Parser.SyntaxNode, chunks: Chunk[], input: ChunkInput) {
   // Table lookup: does this node's type map to a ChunkKind?
@@ -95,7 +157,13 @@ function walk(node: Parser.SyntaxNode, chunks: Chunk[], input: ChunkInput) {
       chunk.chunkKind = "constructor";
     }
 
-    chunks.push(chunk);
+    // Don't push an oversized chunk as one arbitrarily large
+    // piece — splitOversizedChunk hands back the chunk unchanged if it's
+    // already under the cap, or several smaller part-chunks if it isn't.
+    const splitChunks = splitOversizedChunk(node, chunk, input);
+    for (const splitChunk of splitChunks) {
+      chunks.push(splitChunk);
+    }
   }
 
   // Special case: arrow functions assigned to a const/let/var.
@@ -108,20 +176,16 @@ function walk(node: Parser.SyntaxNode, chunks: Chunk[], input: ChunkInput) {
     if (valueNode && valueNode.type === "arrow_function") {
       const nameNode = declarator.childForFieldName("name");
 
-      chunks.push({
-        scanId: input.scanId,
-        filePath: input.filePath,
-        filePurpose: input.filePurpose,
-        language: input.language,
-        parser: "tree-sitter",
-        chunkKind: "arrow_function",
-        chunkName: nameNode ? nameNode.text : "(unknown)",
-        startLine: node.startPosition.row + 1,
-        endLine: node.endPosition.row + 1,
-        startColumn: node.startPosition.column,
-        endColumn: node.endPosition.column,
-        text: input.content.slice(node.startIndex, node.endIndex),
-      });
+      // OSP-43: build this chunk through buildChunk (instead of listing
+      // every field by hand) so it goes through the same cap-and-split
+      // check as every other chunk kind below.
+      const resolvedName = nameNode ? nameNode.text : "(unknown)";
+      const chunk = buildChunk(node, "arrow_function", input, resolvedName);
+
+      const splitChunks = splitOversizedChunk(node, chunk, input);
+      for (const splitChunk of splitChunks) {
+        chunks.push(splitChunk);
+      }
     }
   }
 
