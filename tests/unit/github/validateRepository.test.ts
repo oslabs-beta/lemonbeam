@@ -1,8 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import {
-  RepositoryValidationError,
-  validateRepository,
-} from "../../../backend/src/github/validateRepository.ts";
+import { validateRepository } from "../../../backend/src/github/validateRepository.ts";
 
 describe("validateRepository", () => {
     const originalFetch = globalThis.fetch;
@@ -22,10 +19,32 @@ describe("validateRepository", () => {
         status: number,
         data: unknown,
         headers: Record<string, string> = {},
-    ): Response {
+        ): Response {
         return new Response(JSON.stringify(data), {
         status,
         headers,
+        });
+    }
+
+    function mockRootPackageJsonResponse(packageJson: unknown): Response {
+    return mockJsonResponse(200, {
+        encoding: "base64",
+        content: Buffer.from(JSON.stringify(packageJson), "utf8").toString("base64"),
+        });
+    }
+
+    function mockMissingGitHubFileResponse(): Response {
+        return mockJsonResponse(404, {
+            message: "Not Found",
+        });
+    }
+
+    function mockExistingGitHubFileResponse(path: string): Response {
+        return mockJsonResponse(200, {
+            path,
+            type: "file",
+            encoding: "base64",
+            content: "",
         });
     }
 
@@ -50,14 +69,12 @@ describe("validateRepository", () => {
             })
         )
         .mockResolvedValueOnce(
-            mockJsonResponse(200, {
-                truncated: false,
-                tree: [
-                { type: "blob", path: "package.json" },
-                { type: "blob", path: "src/index.ts" },
-                ],
+            mockRootPackageJsonResponse({
+                name: "project",
             }),
-            );
+        )
+        .mockResolvedValueOnce(mockMissingGitHubFileResponse())
+        .mockResolvedValueOnce(mockMissingGitHubFileResponse());
 
             globalThis.fetch = fetchMock;
 
@@ -94,11 +111,12 @@ describe("validateRepository", () => {
             }),
             )
             .mockResolvedValueOnce(
-            mockJsonResponse(200, {
-                truncated: false,
-                tree: [{ type: "blob", path: "package.json" }],
+            mockRootPackageJsonResponse({
+                name: "project",
             }),
-            );
+            )
+            .mockResolvedValueOnce(mockMissingGitHubFileResponse())
+            .mockResolvedValueOnce(mockMissingGitHubFileResponse());
 
         globalThis.fetch = fetchMock;
 
@@ -225,87 +243,6 @@ describe("validateRepository", () => {
         });
     });
 
-    it("throws UNSUPPORTED_MONOREPO when the repository has nested package.json files", async () => {
-        const fetchMock = vi
-            .fn()
-            .mockResolvedValueOnce(
-            mockJsonResponse(200, {
-                owner: { login: "example" },
-                name: "monorepo",
-                html_url: "https://github.com/example/monorepo",
-                default_branch: "main",
-                language: "TypeScript",
-                size: 1200,
-                private: false,
-            }),
-            )
-            .mockResolvedValueOnce(
-            mockJsonResponse(200, {
-                commit: { sha: "abc123" },
-            }),
-            )
-            .mockResolvedValueOnce(
-            mockJsonResponse(200, {
-                truncated: false,
-                tree: [
-                { type: "blob", path: "package.json" },
-                { type: "blob", path: "packages/web/package.json" },
-                ],
-            }),
-            );
-
-        globalThis.fetch = fetchMock;
-
-        await expect(
-            validateRepository("https://github.com/example/monorepo"),
-        ).rejects.toMatchObject({
-            status: 422,
-            code: "UNSUPPORTED_MONOREPO",
-        });
-    });
-
-    it("does not reject files whose names only end with package.json", async () => {
-        const fetchMock = vi
-            .fn()
-            .mockResolvedValueOnce(
-            mockJsonResponse(200, {
-                owner: { login: "example" },
-                name: "project",
-                html_url: "https://github.com/example/project",
-                default_branch: "main",
-                language: "TypeScript",
-                size: 1200,
-                private: false,
-            }),
-            )
-            .mockResolvedValueOnce(
-            mockJsonResponse(200, {
-                commit: { sha: "abc123" },
-            }),
-            )
-            .mockResolvedValueOnce(
-            mockJsonResponse(200, {
-                truncated: false,
-                tree: [
-                { type: "blob", path: "package.json" },
-                { type: "blob", path: "docs/my-package.json" },
-                ],
-            }),
-            );
-
-        globalThis.fetch = fetchMock;
-
-        await expect(
-            validateRepository("https://github.com/example/project"),
-        ).resolves.toEqual({
-            owner: "example",
-            name: "project",
-            url: "https://github.com/example/project",
-            defaultBranch: "main",
-            commitSha: "abc123",
-        });
-    });
-
     it("throws INVALID_REPOSITORY_URL for a non-GitHub URL", async () => {
         await expect(
             validateRepository("https://example.com/example/project"),
@@ -348,6 +285,194 @@ describe("validateRepository", () => {
         ).rejects.toMatchObject({
             status: 429,
             code: "RATE_LIMITED",
+        });
+    });
+
+    it("allows repositories when no root workspace declarations are found", async () => {
+        const fetchMock = vi
+            .fn()
+            .mockResolvedValueOnce(
+                mockJsonResponse(200, {
+                    owner: { login: "example" },
+                    name: "project",
+                    html_url: "https://github.com/example/project",
+                    default_branch: "main",
+                    language: "TypeScript",
+                    size: 1200,
+                    private: false,
+                }),
+            )
+            .mockResolvedValueOnce(
+                mockJsonResponse(200, {
+                    commit: { sha: "abc123" },
+                }),
+            )
+            .mockResolvedValueOnce(
+                mockRootPackageJsonResponse({
+                    name: "project",
+                }),
+            )
+            .mockResolvedValueOnce(mockMissingGitHubFileResponse())
+            .mockResolvedValueOnce(mockMissingGitHubFileResponse());
+
+        globalThis.fetch = fetchMock;
+
+        await expect(
+            validateRepository("https://github.com/example/project"),
+        ).resolves.toEqual({
+            owner: "example",
+            name: "project",
+            url: "https://github.com/example/project",
+            defaultBranch: "main",
+            commitSha: "abc123",
+        });
+    });
+
+    it("throws UNSUPPORTED_MONOREPO when root package.json declares workspaces", async () => {
+        const fetchMock = vi
+            .fn()
+            .mockResolvedValueOnce(
+                mockJsonResponse(200, {
+                    owner: { login: "example" },
+                    name: "monorepo",
+                    html_url: "https://github.com/example/monorepo",
+                    default_branch: "main",
+                    language: "TypeScript",
+                    size: 1200,
+                    private: false,
+                }),
+            )
+            .mockResolvedValueOnce(
+                mockJsonResponse(200, {
+                    commit: { sha: "abc123" },
+                }),
+            )
+            .mockResolvedValueOnce(
+                mockRootPackageJsonResponse({
+                    name: "monorepo",
+                    workspaces: ["packages/*"],
+                }),
+            );
+
+        globalThis.fetch = fetchMock;
+
+        await expect(
+            validateRepository("https://github.com/example/monorepo"),
+        ).rejects.toMatchObject({
+            status: 422,
+            code: "UNSUPPORTED_MONOREPO",
+        });
+    });
+
+    it("throws UNSUPPORTED_MONOREPO when root package.json declares workspace packages", async () => {
+        const fetchMock = vi
+            .fn()
+            .mockResolvedValueOnce(
+                mockJsonResponse(200, {
+                    owner: { login: "example" },
+                    name: "monorepo",
+                    html_url: "https://github.com/example/monorepo",
+                    default_branch: "main",
+                    language: "TypeScript",
+                    size: 1200,
+                    private: false,
+                }),
+            )
+            .mockResolvedValueOnce(
+                mockJsonResponse(200, {
+                    commit: { sha: "abc123" },
+                }),
+            )
+            .mockResolvedValueOnce(
+                mockRootPackageJsonResponse({
+                    name: "monorepo",
+                    workspaces: {
+                        packages: ["packages/*"],
+                    },
+                }),
+            );
+
+        globalThis.fetch = fetchMock;
+
+        await expect(
+            validateRepository("https://github.com/example/monorepo"),
+        ).rejects.toMatchObject({
+            status: 422,
+            code: "UNSUPPORTED_MONOREPO",
+        });
+    });
+
+    it("throws UNSUPPORTED_MONOREPO when root pnpm-workspace.yaml exists", async () => {
+        const fetchMock = vi
+            .fn()
+            .mockResolvedValueOnce(
+                mockJsonResponse(200, {
+                    owner: { login: "example" },
+                    name: "pnpm-monorepo",
+                    html_url: "https://github.com/example/pnpm-monorepo",
+                    default_branch: "main",
+                    language: "TypeScript",
+                    size: 1200,
+                    private: false,
+                }),
+            )
+            .mockResolvedValueOnce(
+                mockJsonResponse(200, {
+                    commit: { sha: "abc123" },
+                }),
+            )
+            .mockResolvedValueOnce(
+            mockRootPackageJsonResponse({
+                name: "pnpm-monorepo",
+            }),
+        )
+        .mockResolvedValueOnce(mockExistingGitHubFileResponse("pnpm-workspace.yaml"))
+        .mockResolvedValueOnce(mockMissingGitHubFileResponse());
+
+        globalThis.fetch = fetchMock;
+
+        await expect(
+            validateRepository("https://github.com/example/pnpm-monorepo"),
+        ).rejects.toMatchObject({
+            status: 422,
+            code: "UNSUPPORTED_MONOREPO",
+        });
+    });
+
+    it("throws UNSUPPORTED_MONOREPO when root lerna.json exists", async () => {
+        const fetchMock = vi
+            .fn()
+            .mockResolvedValueOnce(
+                mockJsonResponse(200, {
+                    owner: { login: "example" },
+                    name: "lerna-monorepo",
+                    html_url: "https://github.com/example/lerna-monorepo",
+                    default_branch: "main",
+                    language: "TypeScript",
+                    size: 1200,
+                    private: false,
+                }),
+            )
+            .mockResolvedValueOnce(
+                mockJsonResponse(200, {
+                    commit: { sha: "abc123" },
+                }),
+            )
+            .mockResolvedValueOnce(
+                mockRootPackageJsonResponse({
+                    name: "lerna-monorepo",
+                }),
+            )
+            .mockResolvedValueOnce(mockMissingGitHubFileResponse())
+            .mockResolvedValueOnce(mockExistingGitHubFileResponse("lerna.json"));
+
+        globalThis.fetch = fetchMock;
+
+        await expect(
+            validateRepository("https://github.com/example/lerna-monorepo"),
+        ).rejects.toMatchObject({
+            status: 422,
+            code: "UNSUPPORTED_MONOREPO",
         });
     });
 

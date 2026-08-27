@@ -91,29 +91,71 @@ function App() {
 
         <form
           onSubmit={handleSubmit}
-          className="mt-10 w-full max-w-2xl flex flex-col gap-4"
+          className="mt-10 w-full max-w-2xl flex flex-col gap-5 text-left"
         >
-          <div className="flex gap-3">
-            <input
-              type="url"
-              required
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://github.com/example/project.git"
-              className="flex-1 rounded-lg border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none focus:border-[var(--color-yellow)]"
-            />
-            <input
-              type="password"
-              required
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="OpenRouter API Key (sk-or-v1-...)"
-              className="w-72 rounded-lg border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none focus:border-[var(--color-yellow)]"
-            />
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* GitHub Repo URL Field */}
+            <div className="flex-1 flex flex-col gap-1.5">
+              <label
+                htmlFor="repo-url"
+                className="text-xs font-medium uppercase tracking-wider text-zinc-300"
+              >
+                GitHub Repository URL
+              </label>
+              <input
+                id="repo-url"
+                type="url"
+                required
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://github.com/example/project.git"
+                className="rounded-lg border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none focus:border-[var(--color-yellow)]"
+              />
+            </div>
+
+            {/* OpenRouter API Key Field */}
+            <div className="w-full md:w-80 flex flex-col gap-1.5">
+              <div className="flex justify-between items-center">
+                <label
+                  htmlFor="api-key"
+                  className="text-xs font-medium uppercase tracking-wider text-zinc-300"
+                >
+                  OpenRouter API Key
+                </label>
+                <a
+                  href="https://openrouter.ai/keys"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-[var(--color-yellow)] hover:underline"
+                >
+                  What's this? →
+                </a>
+              </div>
+              <input
+                id="api-key"
+                type="password"
+                required
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="sk-or-v1-..."
+                className="rounded-lg border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none focus:border-[var(--color-yellow)]"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-1">
+            <p className="text-sm text-[var(--color-yellow)] opacity-80 whitespace-nowrap">
+              Public GitHub repositories only · API key is sent only for this
+              request and is never stored
+            </p>
             <button
               type="submit"
               disabled={isLoading}
-              className="whitespace-nowrap rounded-lg px-6 py-3.5 text-sm font-semibold text-black transition-opacity hover:opacity-90"
+              className="w-full md:w-auto whitespace-nowrap rounded-lg px-6 py-3.5 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50"
               style={{
                 background:
                   "linear-gradient(90deg, var(--color-yellow-pale), var(--color-yellow), var(--color-yellow-deep))",
@@ -122,10 +164,6 @@ function App() {
               {isLoading ? "Generating..." : "Generate →"}
             </button>
           </div>
-          <p className="mt-3 text-xs text-zinc-500">
-            Public GitHub repositories only · API key is sent only for this
-            request and is never stored
-          </p>
         </form>
 
         {/* Display Error Message Clearly */}
