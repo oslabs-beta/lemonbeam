@@ -384,11 +384,12 @@ describe("validateRepository", () => {
                 }),
             )
             .mockResolvedValueOnce(
-                mockRootPackageJsonResponse({
-                    name: "pnpm-monorepo",
-                }),
-            )
-            .mockResolvedValueOnce(mockExistingGitHubFileResponse("pnpm-workspace.yaml"));
+            mockRootPackageJsonResponse({
+                name: "pnpm-monorepo",
+            }),
+        )
+        .mockResolvedValueOnce(mockExistingGitHubFileResponse("pnpm-workspace.yaml"))
+        .mockResolvedValueOnce(mockMissingGitHubFileResponse());
 
         globalThis.fetch = fetchMock;
 
