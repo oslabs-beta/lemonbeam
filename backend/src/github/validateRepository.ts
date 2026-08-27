@@ -425,7 +425,15 @@ async function fetchRootPackageJson(
   );
 
   if (response.status === 403) {
-    throwForbiddenOrRateLimit(response.headers);
+    if (response.headers.get("x-ratelimit-remaining") === "0") {
+      throwForbiddenOrRateLimit(response.headers);
+    }
+
+    throw new RepositoryValidationError(
+      502,
+      "GITHUB_SERVICE_ERROR",
+      "GitHub returned 403 while checking root package.json.",
+    );
   }
 
   if (response.status === 404) {
@@ -459,7 +467,15 @@ async function rootFileExists(
   );
 
   if (response.status === 403) {
-    throwForbiddenOrRateLimit(response.headers);
+    if (response.headers.get("x-ratelimit-remaining") === "0") {
+      throwForbiddenOrRateLimit(response.headers);
+    }
+
+    throw new RepositoryValidationError(
+      502,
+      "GITHUB_SERVICE_ERROR",
+      `GitHub returned 403 while checking ${path}.`,
+    );
   }
 
   if (response.status === 404) {
