@@ -511,6 +511,46 @@ Once the five-separate-task stretch goal is built, this section will also incorp
 
 ---
 
+## Token-Budgeted, Section-Scored Evidence Selection (Token Ceiling Fix)
+
+### Decision
+
+Before evidence is handed to the single combined LLM call, the backend now selects a bounded subset of chunks rather than sending everything scanned. Each chunk is scored, rule-based and deterministically, against **every** one of the five guide sections — not bucketed into exactly one section by `filePurpose` — since one chunk (e.g. `package.json`) can legitimately serve multiple sections (e.g. Setup / Installation, Running Locally, and Testing). Each section has its own fixed token budget; for each section, chunks are picked highest-scoring first until that section's budget is filled. The union of every section's picks, deduplicated, becomes the evidence sent to `prompts/mvpGuidePrompt.ts`, which is unchanged — it already accepts one flat `Chunk[]` and lets the model organize evidence into sections itself.
+
+This does not change "One Combined Generation Call for the MVP, Five Tasks as a Stretch Goal" — the single combined LLM call is preserved. This decision only bounds and refines what evidence is sent into that one call.
+
+Token counts are estimated with tiktoken (`get_encoding("o200k_base")`), computed once per chunk before section scoring runs.
+
+The scoring rubric itself — the actual rules mapping a chunk's `filePurpose`, `chunkKind`, and (for Markdown) heading text to section relevance — is being implemented separately and is not yet built. The selection algorithm takes scoring as an injected function so the two could be built independently.
+
+### Reasons
+
+- Reported bug: guide generation was crashing on larger repositories because every scanned chunk was sent to the LLM unfiltered, with no ceiling on total prompt size.
+- A flat per-repository token cutoff was rejected in favor of per-section budgets, so one large section's evidence (e.g. a large `src/` tree feeding Project Structure) can't silently crowd out every other section's budget.
+- Scoring a chunk against every section, rather than assigning it to exactly one section via `filePurpose`, matches how repository evidence actually works — `types/chunk.ts`'s own documentation already anticipated this overlap ("`package.json` can support Setup, Running Locally, and Testing").
+- Chosen as a middle option rather than moving directly to the "Five Separate Section-Generation Tasks" stretch goal: it fixes the reported crash without the added cost/complexity of five parallel LLM calls, and the section-scoring work done here is a strict subset of what that stretch goal would also need later.
+- tiktoken was chosen over a character-count heuristic because measurement accuracy matters most exactly at the edge case this fix targets — a repository sitting close to the ceiling. `o200k_base` is used directly rather than a model-name lookup, since tiktoken may not recognize `"gpt-5"` by name; this is safe long-term given the MVP's single fixed OpenAI model (see "User-Supplied OpenRouter API Key (BYOK)").
+- Kept rule-based rather than embedding-based, consistent with "Rule-Based Retrieval Instead of Vector Search" — this fix does not introduce vector search or fuzzy matching.
+
+### Alternatives Considered
+
+- **A flat total-token cutoff across all evidence** — rejected. Doesn't protect any individual section from being crowded out by another section's evidence.
+- **Bucketing each chunk into exactly one section by `filePurpose`** — rejected. Contradicts `types/chunk.ts`'s own documented expectation that one chunk can serve multiple sections; would arbitrarily deny some sections evidence they need.
+- **Moving directly to five separate per-section LLM calls** — rejected for now. That remains the larger, separate "Five Separate Section-Generation Tasks" stretch goal; this fix is scoped to resolve the reported crash without reopening that architecture change.
+
+### Consequences
+
+- New files planned under `backend/src/orchestration/`:
+  - `estimateChunkTokens.ts` — wraps tiktoken; token-cost measurement, computed once per chunk. Not yet implemented; tracked as OSP-48.
+  - `selectEvidence.ts` — the per-section, budget-filling selection algorithm; takes a chunk-scoring function as a parameter so scoring can be built and swapped independently. Not yet implemented; tracked as OSP-47.
+  - `scoreChunkForSections.ts` — the real rule-based section-scoring rubric. Not yet implemented; `selectEvidence.ts` is developed and tested against a placeholder scoring function in the meantime.
+- `generateGuide.ts` now calls the selection step before `generateGuideSection`, and passes its selected subset instead of the full scanned chunk list.
+- This extends "Programmatically Assembled Uncertainty Section": the Uncertainties and Missing Information section now also reports chunks excluded by token budget, alongside files skipped during discovery, classification, or chunking.
+- `chunkFile.ts`, the four chunkers, the shared `Chunk` type, and `prompts/mvpGuidePrompt.ts` are unchanged — token cost and section scores are computed and consumed entirely within `orchestration/`, never persisted to SQLite, and recomputed fresh each scan, consistent with "In-Memory Chunk Storage for the MVP, SQLite as a Stretch Goal."
+- Fixed per-section token budget values still need to be agreed on; not finalized as part of this decision.
+
+---
+
 ## Section-Specific Prompts (Stretch Goal)
 
 ### Decision

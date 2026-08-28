@@ -277,11 +277,15 @@ The MVP orchestration flow is:
 
 ```text
 Retrieve evidence across all five primary sections
--> build the single general MVP prompt
+-> estimate each chunk's token cost and score it against every section
+-> select a token-budgeted subset per section (see DECISIONS.md >
+   "Token-Budgeted, Section-Scored Evidence Selection (Token Ceiling Fix)")
+-> build the single general MVP prompt from the selected evidence
 -> make one LLM call
 -> return combined guide text, citations, and any uncertainties
 -> validate citations
--> assemble the sixth Uncertainties section from skipped files
+-> assemble the sixth Uncertainties section from skipped files and
+   budget-excluded chunks
 -> return the final guide
 ```
 
@@ -305,15 +309,30 @@ The orchestration files are:
 ```text
 orchestration/
 ├── guideSections.ts
+├── estimateChunkTokens.ts          # not yet implemented — tracked in OSP-48
+├── selectEvidence.ts               # not yet implemented — tracked in OSP-47
+├── scoreChunkForSections.ts
 ├── generateGuideSection.ts
 └── generateGuide.ts
 ```
 
-For the MVP, these files still divide the same responsibilities — retrieval, prompt building, the LLM call, citation validation, and assembly — just for one combined task instead of five.
+For the MVP, these files still divide the same responsibilities — retrieval, evidence selection, prompt building, the LLM call, citation validation, and assembly — just for one combined task instead of five.
 
 #### `guideSections.ts`
 
 Defines the primary guide section(s) LemonBeam generates and connects each to its position and prompt behavior. For the MVP, this describes one combined task producing all five sections; the stretch goal restores five independently defined sections.
+
+#### `estimateChunkTokens.ts` _(not yet implemented — tracked in OSP-48)_
+
+Estimates a chunk's token cost using tiktoken, computed once per chunk before section scoring and selection run. Pure measurement — no knowledge of sections, budgets, or scoring (see DECISIONS.md > "Token-Budgeted, Section-Scored Evidence Selection (Token Ceiling Fix)").
+
+#### `selectEvidence.ts` _(not yet implemented — tracked in OSP-47)_
+
+Given all chunks retrieved for a scan, a fixed per-section token budget, and a chunk-scoring function, picks each section's highest-scoring chunks up to its budget, then returns the deduplicated union across all five sections as `included`, and everything no section picked as `excluded`. Takes scoring as an injected function so the selection algorithm and the scoring rubric can be built and tested independently.
+
+#### `scoreChunkForSections.ts`
+
+The rule-based rubric scoring one chunk against every guide section (via `filePurpose`, `chunkKind`, and Markdown heading text), rather than assigning a chunk to a single section. Not yet implemented as of this writing; `selectEvidence.ts` is developed against a placeholder scoring function in the meantime.
 
 #### `generateGuideSection.ts`
 
@@ -333,11 +352,12 @@ For the MVP this runs once, for the combined task. In the stretch goal, it runs 
 Coordinates the complete guide:
 
 1. reads the section definition(s)
-2. starts the generation task(s)
-3. waits for the result(s)
-4. sorts the sections into the fixed order
-5. combines them into the final guide
-6. assembles the Uncertainties section from skipped-file data (and, once the stretch goal is built, from each task's own uncertainty results too)
+2. selects a token-budgeted evidence subset via `selectEvidence.ts` before generation starts
+3. starts the generation task(s)
+4. waits for the result(s)
+5. sorts the sections into the fixed order
+6. combines them into the final guide
+7. assembles the Uncertainties section from skipped-file data and budget-excluded chunks (and, once the stretch goal is built, from each task's own uncertainty results too)
 
 ### Prompt Builders
 
@@ -398,7 +418,7 @@ Missing or unclear information should be returned as uncertainty instead of bein
 
 The Uncertainties and Missing Information section is not produced through another independent LLM call.
 
-Each primary section task may return uncertainty information. `generateGuide.ts` collects those uncertainty items, along with the list of files skipped earlier during discovery, classification, or chunking (see `DECISIONS.md` > "Skipped Files Are Not Fatal, and Are Reported"), and assembles them into the final section.
+Each primary section task may return uncertainty information. `generateGuide.ts` collects those uncertainty items, along with the list of files skipped earlier during discovery, classification, or chunking (see `DECISIONS.md` > "Skipped Files Are Not Fatal, and Are Reported") and the chunks `selectEvidence.ts` excluded for exceeding a section's token budget (see `DECISIONS.md` > "Token-Budgeted, Section-Scored Evidence Selection (Token Ceiling Fix)"), and assembles them into the final section.
 
 The exact guide-section wording and ordering belong in `PROJECT_BRIEF.md`.
 
@@ -508,6 +528,9 @@ backend/
 │   │
 │   ├── orchestration/
 │   │   ├── guideSections.ts
+│   │   ├── estimateChunkTokens.ts          # not yet implemented — tracked in OSP-48
+│   │   ├── selectEvidence.ts               # not yet implemented — tracked in OSP-47
+│   │   ├── scoreChunkForSections.ts
 │   │   ├── generateGuideSection.ts
 │   │   └── generateGuide.ts
 │   │
