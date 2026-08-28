@@ -19,10 +19,10 @@ describe("estimateTokens", () => {
 
   it("returns a positive token count for code-like text", () => {
     const code = `
-function greet(name: string): string {
-  return \`Hello, ${"${name}"}\`;
-}
-`;
+    function greet(name: string): string {
+    return \`Hello, ${"${name}"}\`;
+    }
+    `;
 
     expect(estimateTokens(code)).toBeGreaterThan(0);
   });
