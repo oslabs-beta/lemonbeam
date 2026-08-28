@@ -182,7 +182,11 @@ function walk(node: Parser.SyntaxNode, chunks: Chunk[], input: ChunkInput) {
       const resolvedName = nameNode ? nameNode.text : "(unknown)";
       const chunk = buildChunk(node, "arrow_function", input, resolvedName);
 
-      const splitChunks = splitOversizedChunk(node, chunk, input);
+      // Pass valueNode (the arrow_function itself), not node (the
+      // lexical_declaration wrapper) — lexical_declaration has no "body"
+      // field, so splitOversizedChunk's childForFieldName("body") lookup
+      // would always come back null and silently skip splitting.
+      const splitChunks = splitOversizedChunk(valueNode, chunk, input);
       for (const splitChunk of splitChunks) {
         chunks.push(splitChunk);
       }
