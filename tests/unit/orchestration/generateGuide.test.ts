@@ -103,4 +103,26 @@ describe("generateGuide", () => {
 
     await expect(generateGuide([makeChunk()], [], "test-api-key")).rejects.toBe(llmError);
   });
+
+  it("only passes budget-included chunks to generateGuideSection, and reports excluded ones in the uncertainties section", async () => {
+    const includedChunk = makeChunk();
+    // "source" scores 0 for every section under the current placeholder
+    // rubric, so this chunk is always excluded regardless of budget.
+    const excludedChunk = makeChunk({
+      filePath: "src/App.tsx",
+      filePurpose: "source",
+      chunkKind: "function",
+      chunkName: "App",
+    });
+
+    const result = await generateGuide([includedChunk, excludedChunk], [], "test-api-key");
+
+    expect(generateGuideSectionMock).toHaveBeenCalledWith({
+      openRouterApiKey: "test-api-key",
+      chunks: [includedChunk],
+    });
+    expect(result.markdown).toContain(
+      "- `src/App.tsx (App)` — excluded from evidence selection (irrelevant or over budget)",
+    );
+  });
 });

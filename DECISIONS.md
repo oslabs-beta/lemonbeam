@@ -164,7 +164,7 @@ These numbers are a starting point for the MVP, not a permanent ceiling, and may
 ### Consequences
 
 - `REPOSITORY_TOO_LARGE` (413) in `API_CONTRACT.md` now has concrete numbers behind it.
-- The exact hosting platform for LemonBeam, and its request timeout, has not yet been decided; the size limits above should be revisited once that is known, since the platform's timeout is the real ceiling this range is trying to stay under.
+- LemonBeam's hosting platform is Railway. Its request timeout is now known — 5 minutes with no data transferred, up to 15 minutes if data is actively streaming — but the size limits above haven't yet been re-validated against it with a real timed scan; the platform's timeout is still the real ceiling this range is trying to stay under, just no longer an unknown number. See "Token-Budgeted, Section-Scored Evidence Selection (Token Ceiling Fix)" for the same open caveat applied to per-section token budgets.
 - Supporting larger repositories later depends primarily on moving off a single blocking request (see `PROJECT_BRIEF.md` > "Asynchronous Scan Processing"), not on adopting vector-based retrieval — vector retrieval helps keep per-section evidence smaller and cheaper, but is a separate, optional improvement.
 
 ---
@@ -541,13 +541,13 @@ The scoring rubric itself — the actual rules mapping a chunk's `filePurpose`, 
 ### Consequences
 
 - New files planned under `backend/src/orchestration/`:
-  - `estimateChunkTokens.ts` — wraps tiktoken; token-cost measurement, computed once per chunk. Not yet implemented; tracked as OSP-48.
-  - `selectEvidence.ts` — the per-section, budget-filling selection algorithm; takes a chunk-scoring function as a parameter so scoring can be built and swapped independently. Not yet implemented; tracked as OSP-47.
-  - `scoreChunkForSections.ts` — the real rule-based section-scoring rubric. Not yet implemented; `selectEvidence.ts` is developed and tested against a placeholder scoring function in the meantime.
+  - `estimateChunkTokens.ts` — wraps tiktoken; token-cost measurement, computed once per chunk. Implemented; tracked as OSP-48.
+  - `budgetChunkPerSection.ts` — the per-section, budget-filling selection algorithm; takes a chunk-scoring function as a parameter so scoring can be built and swapped independently. Implemented; tracked as OSP-47.
+  - `scoreChunkForSections.ts` — the real rule-based section-scoring rubric. Not yet implemented; `budgetChunkPerSection.ts` is developed and tested against a placeholder scoring function in the meantime.
 - `generateGuide.ts` now calls the selection step before `generateGuideSection`, and passes its selected subset instead of the full scanned chunk list.
 - This extends "Programmatically Assembled Uncertainty Section": the Uncertainties and Missing Information section now also reports chunks excluded by token budget, alongside files skipped during discovery, classification, or chunking.
 - `chunkFile.ts`, the four chunkers, the shared `Chunk` type, and `prompts/mvpGuidePrompt.ts` are unchanged — token cost and section scores are computed and consumed entirely within `orchestration/`, never persisted to SQLite, and recomputed fresh each scan, consistent with "In-Memory Chunk Storage for the MVP, SQLite as a Stretch Goal."
-- Fixed per-section token budget values still need to be agreed on; not finalized as part of this decision.
+- Fixed per-section token budget values are set in `guideSections.ts`'s `SECTION_BUDGETS` (total 60,000: overview 12,000, setup 9,000, running 6,000, structure 21,000, testing 12,000). These are a starting proposal, not a validated ceiling — sized against GPT-5's 400,000-token context window and per-token cost (both comfortable at this total), but **not yet checked against the request-timeout risk on Railway**, LemonBeam's chosen hosting platform. `POST /api/scans` is a single synchronous blocking request with no streaming or keep-alive (see "Single Scan Endpoint"), and Railway closes a request after 5 minutes with no data transferred (up to 15 minutes if data is actively streaming). Revisit these numbers once a real end-to-end scan has been timed on Railway — same "starting point, not permanent" caveat as "Repository Size Limits for the MVP."
 
 ---
 
