@@ -55,7 +55,7 @@ function buildUncertaintiesSection(skippedFiles: SkippedFile[], excludedChunks: 
   if (excludedChunks.length > 0) {
     const excludedLines = excludedChunks.map((chunk) => {
       const label = chunk.chunkName ? `${chunk.filePath} (${chunk.chunkName})` : chunk.filePath;
-      return `- \`${label}\` — excluded from evidence: did not fit within any relevant section's token budget`;
+      return `- \`${label}\` — excluded from evidence selection (irrelevant or over budget)`;
     });
     sections.push(
       "",
