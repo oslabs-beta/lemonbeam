@@ -53,10 +53,16 @@ function buildUncertaintiesSection(skippedFiles: SkippedFile[], excludedChunks: 
   }
 
   if (excludedChunks.length > 0) {
-    const excludedLines = excludedChunks.map((chunk) => {
+    const MAX_EXCLUDED_SHOWN = 20;
+    const shown = excludedChunks.slice(0, MAX_EXCLUDED_SHOWN);
+    const remaining = excludedChunks.length - shown.length;
+    const excludedLines = shown.map((chunk) => {
       const label = chunk.chunkName ? `${chunk.filePath} (${chunk.chunkName})` : chunk.filePath;
       return `- \`${label}\` — excluded from evidence selection (irrelevant or over budget)`;
     });
+    if (remaining > 0) {
+      excludedLines.push(`- …and ${remaining} more excluded chunk(s)`);
+    }
     sections.push(
       "",
       "The following evidence was found but excluded due to per-section token budgets, and may be missing from this guide:",
