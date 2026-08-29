@@ -56,6 +56,40 @@ describe("scanRepository", () => {
         expect(result.chunks.some((chunk) => chunk.filePath === "add.ts")).toBe(true);
     });
 
+    it("caps CHANGELOG.md content instead of chunking the whole file", async () => {
+        const marker = "SHOULD_NOT_APPEAR_PAST_THE_CAP";
+        const changelog = "# Changelog\n\n## v1.0.0\n\nInitial release.\n" + "x".repeat(3000) + marker;
+        await writeFile(path.join(root, "CHANGELOG.md"), changelog);
+
+        const result = await scanRepository(root, "scan_test");
+
+        const changelogChunks = result.chunks.filter((chunk) => chunk.filePath === "CHANGELOG.md");
+        expect(changelogChunks.length).toBeGreaterThan(0);
+        expect(changelogChunks.every((chunk) => !chunk.text.includes(marker))).toBe(true);
+    });
+
+    it("caps LICENSE content instead of chunking the whole file", async () => {
+        const marker = "SHOULD_NOT_APPEAR_PAST_THE_CAP";
+        const license = "MIT License\n\n" + "Permission is hereby granted. ".repeat(200) + marker;
+        await writeFile(path.join(root, "LICENSE"), license);
+
+        const result = await scanRepository(root, "scan_test");
+
+        const licenseChunks = result.chunks.filter((chunk) => chunk.filePath === "LICENSE");
+        expect(licenseChunks.length).toBeGreaterThan(0);
+        expect(licenseChunks.every((chunk) => !chunk.text.includes(marker))).toBe(true);
+    });
+
+    it("does not cap a short CHANGELOG.md that's already under the cap", async () => {
+        const changelog = "# Changelog\n\n## v1.0.0\n\nInitial release.\n";
+        await writeFile(path.join(root, "CHANGELOG.md"), changelog);
+
+        const result = await scanRepository(root, "scan_test");
+
+        const changelogChunks = result.chunks.filter((chunk) => chunk.filePath === "CHANGELOG.md");
+        expect(changelogChunks.some((chunk) => chunk.text.includes("Initial release."))).toBe(true);
+    });
+
     it("returns empty chunks and skippedFiles for an empty repository", async () => {
         const result = await scanRepository(root, "scan_test");
 

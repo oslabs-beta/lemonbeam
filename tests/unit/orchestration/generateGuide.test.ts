@@ -106,13 +106,14 @@ describe("generateGuide", () => {
 
   it("only passes budget-included chunks to generateGuideSection, and reports excluded ones in the uncertainties section", async () => {
     const includedChunk = makeChunk();
-    // "source" scores 0 for every section under the current placeholder
-    // rubric, so this chunk is always excluded regardless of budget.
+    // filePurpose/chunkKind "unknown" match none of scoreChunk's rules, so
+    // this chunk scores 0 for every section and is always excluded
+    // regardless of budget.
     const excludedChunk = makeChunk({
-      filePath: "src/App.tsx",
-      filePurpose: "source",
-      chunkKind: "function",
-      chunkName: "App",
+      filePath: "vendor/generated-icons.ts",
+      filePurpose: "unknown",
+      chunkKind: "unknown",
+      chunkName: undefined,
     });
 
     const result = await generateGuide([includedChunk, excludedChunk], [], "test-api-key");
@@ -122,7 +123,7 @@ describe("generateGuide", () => {
       chunks: [includedChunk],
     });
     expect(result.markdown).toContain(
-      "- `src/App.tsx (App)` — excluded from evidence selection (irrelevant or over budget)",
+      "- `vendor/generated-icons.ts` — excluded from evidence selection (irrelevant or over budget)",
     );
   });
 });

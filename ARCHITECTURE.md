@@ -174,7 +174,9 @@ It should exclude content that should not be analyzed, including:
 
 - dependency directories such as `node_modules`
 - Git internals such as `.git`
-- generated build output
+- generated build output and cache directories (`dist`, `.turbo`, `.cache`, `.vercel`, etc.)
+- editor/OS cruft (`.vscode`, `.idea`, `.DS_Store`) and lockfiles
+- media/decoration assets and i18n data dumps (see `DECISIONS.md` > "Exclude Low-Value Files from Guide Generation")
 - binary files
 - files that exceed the supported size limits
 
@@ -311,7 +313,7 @@ orchestration/
 ├── guideSections.ts
 ├── estimateChunkTokens.ts
 ├── budgetChunkPerSection.ts
-├── scoreChunkForSections.ts
+├── scoreChunk.ts
 ├── generateGuideSection.ts
 └── generateGuide.ts
 ```
@@ -330,9 +332,9 @@ Estimates a chunk's token cost using tiktoken, computed once per chunk before se
 
 Given all chunks retrieved for a scan, a fixed per-section token budget, and a chunk-scoring function, picks each section's highest-scoring chunks up to its budget, then returns the deduplicated union across all five sections as `included`, and everything no section picked as `excluded`. Takes scoring as an injected function so the selection algorithm and the scoring rubric can be built and tested independently.
 
-#### `scoreChunkForSections.ts`
+#### `scoreChunk.ts`
 
-The rule-based rubric scoring one chunk against every guide section (via `filePurpose`, `chunkKind`, and Markdown heading text), rather than assigning a chunk to a single section. Not yet implemented as of this writing; `budgetChunkPerSection.ts` is developed against a placeholder scoring function in the meantime.
+The rule-based rubric scoring one chunk against every guide section (via `filePurpose`, `chunkKind`, and Markdown heading text), rather than assigning a chunk to a single section. Implemented; tracked as OSP-50.
 
 #### `generateGuideSection.ts`
 
@@ -528,9 +530,9 @@ backend/
 │   │
 │   ├── orchestration/
 │   │   ├── guideSections.ts
-│   │   ├── estimateChunkTokens.ts          # not yet implemented — tracked in OSP-48
-│   │   ├── budgetChunkPerSection.ts               # not yet implemented — tracked in OSP-47
-│   │   ├── scoreChunkForSections.ts
+│   │   ├── estimateChunkTokens.ts          # token-cost measurement (tiktoken)
+│   │   ├── budgetChunkPerSection.ts       # per-section, budget-filling evidence selection
+│   │   ├── scoreChunk.ts
 │   │   ├── generateGuideSection.ts
 │   │   └── generateGuide.ts
 │   │
