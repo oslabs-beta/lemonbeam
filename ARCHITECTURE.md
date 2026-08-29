@@ -174,7 +174,9 @@ It should exclude content that should not be analyzed, including:
 
 - dependency directories such as `node_modules`
 - Git internals such as `.git`
-- generated build output
+- generated build output and cache directories (`dist`, `.turbo`, `.cache`, `.vercel`, etc.)
+- editor/OS cruft (`.vscode`, `.idea`, `.DS_Store`) and lockfiles
+- media/decoration assets and i18n data dumps (see `DECISIONS.md` > "Exclude Low-Value Files from Guide Generation")
 - binary files
 - files that exceed the supported size limits
 

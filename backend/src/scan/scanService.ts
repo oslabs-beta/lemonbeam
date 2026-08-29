@@ -9,6 +9,17 @@ import { classifyFile } from "./classifyFile.js";
 import { chunkFile } from "../chunking/chunkFile.js";
 import type { Chunk, ChunkInput } from "../types/chunk.js";
 
+// CHANGELOG.md and LICENSE are worth keeping (unlike the files discoverFiles.ts
+// excludes outright), but can grow very large while only their first portion
+// is actually useful evidence — a changelog's newest entries, or a license's
+// name and opening paragraph. Capped, not excluded, so both still contribute
+// real evidence without inflating token usage on their own (see OSP-42;
+// DECISIONS.md > "Exclude Low-Value Files from Guide Generation"). Starting
+// number, not a tuned one — matches MAX_FILE_SIZE_BYTES/SECTION_BUDGETS in
+// treating an MVP threshold as a revisitable placeholder.
+const CAPPED_FILE_NAMES = new Set(["CHANGELOG.md", "LICENSE"]);
+const CAPPED_FILE_MAX_CHARS = 2_000;
+
 // One file that failed to become chunks, and why. pipelineManager.ts passes
 // a list of these to orchestration/generateGuide.ts, which folds them into
 // the guide's "Uncertainties and Missing Information" section (see
@@ -48,6 +59,10 @@ async function scanRepository(repoLocalPath: string, scanId: string): Promise<Sc
                         reason: error instanceof Error ? error.message : String(error),
                     },
                 };
+            }
+
+            if (CAPPED_FILE_NAMES.has(path.basename(filePath))) {
+                content = content.slice(0, CAPPED_FILE_MAX_CHARS);
             }
 
             // No try/catch needed here: classifyFile only inspects the path
