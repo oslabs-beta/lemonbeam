@@ -309,8 +309,8 @@ The orchestration files are:
 ```text
 orchestration/
 ├── guideSections.ts
-├── estimateChunkTokens.ts          # not yet implemented — tracked in OSP-48
-├── budgetChunkPerSection.ts               # not yet implemented — tracked in OSP-47
+├── estimateChunkTokens.ts
+├── budgetChunkPerSection.ts
 ├── scoreChunkForSections.ts
 ├── generateGuideSection.ts
 └── generateGuide.ts
@@ -322,11 +322,11 @@ For the MVP, these files still divide the same responsibilities — retrieval, e
 
 Defines the primary guide section(s) LemonBeam generates and connects each to its position and prompt behavior. For the MVP, this describes one combined task producing all five sections; the stretch goal restores five independently defined sections.
 
-#### `estimateChunkTokens.ts` _(not yet implemented — tracked in OSP-48)_
+#### `estimateChunkTokens.ts`
 
 Estimates a chunk's token cost using tiktoken, computed once per chunk before section scoring and selection run. Pure measurement — no knowledge of sections, budgets, or scoring (see DECISIONS.md > "Token-Budgeted, Section-Scored Evidence Selection (Token Ceiling Fix)").
 
-#### `budgetChunkPerSection.ts` _(not yet implemented — tracked in OSP-47)_
+#### `budgetChunkPerSection.ts`
 
 Given all chunks retrieved for a scan, a fixed per-section token budget, and a chunk-scoring function, picks each section's highest-scoring chunks up to its budget, then returns the deduplicated union across all five sections as `included`, and everything no section picked as `excluded`. Takes scoring as an injected function so the selection algorithm and the scoring rubric can be built and tested independently.
 
