@@ -122,7 +122,7 @@ describe("generateGuide", () => {
       chunks: [includedChunk],
     });
     expect(result.markdown).toContain(
-      "- `src/App.tsx (App)` — excluded from evidence: did not fit within any relevant section's token budget",
+      "- `src/App.tsx (App)` — excluded from evidence selection (irrelevant or over budget)",
     );
   });
 });
