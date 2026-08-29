@@ -28,7 +28,7 @@ function expectChunksUnderTokenCap(
 
 // See TESTING.md > Parsing and Chunking > Markdown
 describe("markdownChunker", () => {
-    it ( "splits a markdown file into chunks at heading boundries", () => {
+    it ( "splits a markdown file into chunks at heading boundaries", () => {
         const content = "# Intro\n\nWelcome.\n\n## Install \n\nRun npm install.\n";
 
         const chunks = markdownChunker(makeInput(content)); 
@@ -38,7 +38,7 @@ describe("markdownChunker", () => {
         expect(chunks[1].chunkName).toBe("Install"); 
     });
 
-    it("inlcludes each section's text in its chunk", () => {
+    it("includes each section's text in its chunk", () => {
         const content = "# Intro\n\nWelcome.\n\n## Install\n\nRun npm install.\n";
 
         const chunks = markdownChunker(makeInput(content));

@@ -54,26 +54,8 @@ function markdownChunker(input: ChunkInput): Chunk[] {
     const chunks: Chunk[] = [];
     
     if (headingIndexes[0].index > 0) {
-        const startSourceLine = lines[0]; 
-        const endSourceLine = lines[headingIndexes[0].index -1]; 
-        const text = input.content.slice(
-            startSourceLine.startOffset,
-            endSourceLine.endOffset
-        );
-
-        if (text.trim().length > 0) {
-            chunks.push({
-                scanId: input.scanId,
-                filePath: input.filePath,
-                filePurpose: input.filePurpose,
-                language: input.language,
-                parser: "markdown",
-                chunkKind: "markdown_section", 
-                startLine: startSourceLine.lineNumber,
-                endLine: endSourceLine.lineNumber,
-                text,
-            });
-        }
+        const preHeadingLines = lines.slice(0, headingIndexes[0].index);
+        chunks.push(...buildMarkdownChunksFromLines(input, preHeadingLines));
     }
 
     for (const [index, heading] of headingIndexes.entries()) {
@@ -108,7 +90,7 @@ function buildMarkdownChunksFromLines(
         return [makeMarkdownChunk(input, sourceLines, chunkName)];
     }
 
-      const chunks: Chunk[] = [];
+    const chunks: Chunk[] = [];
     const paragraphBlocks = splitIntoParagraphBlocks(sourceLines);
     let currentLines: SourceLine[] = [];
 
@@ -179,6 +161,18 @@ function splitOversizedParagraph(
     let currentLines: SourceLine[] = [];
 
     for (const line of paragraphLines) {
+        const lineText = input.content.slice(line.startOffset, line.endOffset);
+
+        if (estimateTokens(lineText) > MAX_MARKDOWN_CHUNK_TOKENS) {
+            if (currentLines.length > 0) {
+                chunks.push(makeMarkdownChunk(input, currentLines, chunkName));
+                currentLines = [];
+            }
+
+            chunks.push(...splitOversizedLine(input, line, chunkName));
+            continue;
+        }
+
         const candidateLines = [...currentLines, line];
         const candidateText = sliceSourceLines(input.content, candidateLines);
 
@@ -199,6 +193,57 @@ function splitOversizedParagraph(
     }
 
     return chunks;
+}
+
+function splitOversizedLine(
+    input: ChunkInput,
+    line: SourceLine,
+    chunkName?: string,
+): Chunk[] {
+    const chunks: Chunk[] = [];
+    const words = line.text.match(/\S+\s*/g) ?? [];
+    let currentText = "";
+
+    for (const word of words) {
+        const candidateText = currentText + word;
+
+        if (
+            currentText.length > 0 &&
+            estimateTokens(candidateText) > MAX_MARKDOWN_CHUNK_TOKENS
+        ) {
+            chunks.push(makeMarkdownChunkFromText(input, line, currentText, chunkName));
+            currentText = word;
+            continue;
+        }
+
+        currentText = candidateText;
+    }
+
+    if (currentText.trim().length > 0) {
+        chunks.push(makeMarkdownChunkFromText(input, line, currentText, chunkName));
+    }
+
+    return chunks;
+}
+
+function makeMarkdownChunkFromText(
+    input: ChunkInput,
+    line: SourceLine,
+    text: string,
+    chunkName?: string,
+): Chunk {
+    return {
+        scanId: input.scanId,
+        filePath: input.filePath,
+        filePurpose: input.filePurpose,
+        language: input.language,
+        parser: "markdown",
+        chunkKind: "markdown_section",
+        chunkName,
+        startLine: line.lineNumber,
+        endLine: line.lineNumber,
+        text,
+    };
 }
 
 function makeMarkdownChunk(
