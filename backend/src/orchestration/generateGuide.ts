@@ -21,29 +21,51 @@
 import type { Chunk } from "../types/chunk.js";
 import type { SkippedFile } from "../scan/scanService.js";
 import { generateGuideSection } from "./generateGuideSection.js";
+import { budgetChunkPerSection } from "./budgetChunkPerSection.js";
+import { SECTION_BUDGETS } from "./guideSections.js";
+import { placeholderScoreChunk } from "./placeholderScoreChunk.js";
 
 // The full guide as one markdown string, ready to hand back to the caller.
 type GuideResult = {
     markdown: string;
 }
 
-// Builds the sixth section directly from skippedFiles rather than
-// summarizing it via another LLM call — the content is already fully
-// known, so generating it programmatically is cheaper and deterministic.
-function buildUncertaintiesSection(skippedFiles: SkippedFile[]): string {
-  if (skippedFiles.length === 0) {
+// Builds the sixth section directly from skippedFiles and budget-excluded
+// chunks, rather than summarizing either via another LLM call — both are
+// already fully known, so generating this programmatically is cheaper and
+// deterministic (see DECISIONS.md > "Token-Budgeted, Section-Scored
+// Evidence Selection (Token Ceiling Fix)").
+function buildUncertaintiesSection(skippedFiles: SkippedFile[], excludedChunks: Chunk[]): string {
+  if (skippedFiles.length === 0 && excludedChunks.length === 0) {
     return "## Uncertainties and Missing Information\n\nAll files were scanned successfully — there is nothing to report in this section.";
   }
 
-  const lines = skippedFiles.map((file) => `- \`${file.filePath}\` — ${file.reason}`);
+  const sections = ["## Uncertainties and Missing Information"];
 
-  return [
-    "## Uncertainties and Missing Information",
-    "",
-    "The following files could not be analyzed and may be missing from this guide:",
-    "",
-    ...lines,
-  ].join("\n");
+  if (skippedFiles.length > 0) {
+    const skippedLines = skippedFiles.map((file) => `- \`${file.filePath}\` — ${file.reason}`);
+    sections.push(
+      "",
+      "The following files could not be analyzed and may be missing from this guide:",
+      "",
+      ...skippedLines,
+    );
+  }
+
+  if (excludedChunks.length > 0) {
+    const excludedLines = excludedChunks.map((chunk) => {
+      const label = chunk.chunkName ? `${chunk.filePath} (${chunk.chunkName})` : chunk.filePath;
+      return `- \`${label}\` — excluded from evidence: did not fit within any relevant section's token budget`;
+    });
+    sections.push(
+      "",
+      "The following evidence was found but excluded due to per-section token budgets, and may be missing from this guide:",
+      "",
+      ...excludedLines,
+    );
+  }
+
+  return sections.join("\n");
 }
 
 // generateGuideSection failures (rate limits, OpenRouter errors,
@@ -54,8 +76,10 @@ async function generateGuide(
     skippedFiles: SkippedFile[],
     openRouterApiKey: string
 ): Promise<GuideResult> {
-    const { text } = await generateGuideSection({ openRouterApiKey, chunks });
-    const uncertaintiesSection = buildUncertaintiesSection(skippedFiles);
+    const { included, excluded } = budgetChunkPerSection(chunks, SECTION_BUDGETS, placeholderScoreChunk);
+
+    const { text } = await generateGuideSection({ openRouterApiKey, chunks: included });
+    const uncertaintiesSection = buildUncertaintiesSection(skippedFiles, excluded);
 
     return {
         markdown: `${text}\n\n${uncertaintiesSection}`,
