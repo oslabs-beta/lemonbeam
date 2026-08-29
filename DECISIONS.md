@@ -188,6 +188,33 @@ These numbers are a starting point for the MVP, not a permanent ceiling, and may
 
 ---
 
+## Exclude Low-Value Files from Guide Generation
+
+### Decision
+
+`scan/discoverFiles.ts`'s skip lists are expanded beyond `node_modules`, `.git`, `dist`, `build`, `.next`, `coverage`, and `.env*` to also exclude: lockfiles (`package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `bun.lockb`); additional build/cache/generated-output directories (`.turbo`, `.cache`, `.parcel-cache`, `.nyc_output`, `.docusaurus`, `.vercel`, `.netlify`, `storybook-static`, `.yarn`); editor/OS cruft (`.vscode`, `.idea`, `.DS_Store`); Yarn Plug'n'Play output files (matched by the `.pnp.` prefix, since exact names vary); media/decoration assets by extension (`.svg`, `.png`, `.jpg`, `.jpeg`, `.gif`, `.ico`, `.webp`, `.bmp`, `.avif`); and i18n/locale data directories (`locales`, `locale`, `i18n`, `translations`).
+
+Separately, `scan/scanService.ts` caps (does not exclude) `CHANGELOG.md` and `LICENSE` content to the first 2,000 characters before chunking, rather than adding them to `discoverFiles.ts`'s skip lists.
+
+`test/`, `docs/`, and `examples/` remain fully included — they're real guide evidence, not low-value.
+
+### Reasons
+
+- Every excluded category is either binary/generated noise (build caches, PnP output), a duplicate of information already captured elsewhere (lockfiles duplicate `package.json`'s dependency list), pure decoration (logos, screenshots), or data that isn't prose evidence (locale JSON dumps) — none of it meaningfully helps a contributor guide.
+- These categories are large and common enough across real repositories to meaningfully inflate token usage, contributing to the token-ceiling failures already logged in `test-runs/` (e.g. `express`).
+- Media assets are matched by extension rather than relying only on `isBinaryFile`'s content sniff, since that check can't catch text-based formats like SVG, and an extension check also avoids an unnecessary stat+read for files already known to be media.
+- `CHANGELOG.md` and `LICENSE` are capped rather than excluded because they're not zero-value — a changelog's newest entries and a license's name/opening paragraph are genuinely useful, just not the entire file. Capping instead of excluding keeps that signal while bounding its token cost.
+- 2,000 characters is a starting number, not a tuned one, consistent with how `MAX_FILE_SIZE_BYTES` and `SECTION_BUDGETS` were also set as MVP starting points rather than measured ceilings.
+- `test/`, `docs/`, and `examples/` are excluded from this pass on purpose: the Testing section relies on `test/`, and Setup/Running evidence in existing test runs cites `docs/`/`examples/` — excluding them would remove real evidence, not low-value noise (see the *monorepo false-positive* bug this was flagged alongside, which this ticket deliberately does not extend to these directories).
+
+### Consequences
+
+- `SKIPPED_DIRECTORY_NAMES`, `SKIPPED_FILE_NAMES`, `SKIPPED_FILE_PREFIXES`, and `SKIPPED_FILE_EXTENSIONS` in `discoverFiles.ts` are the single source of truth for file/directory exclusion — `github/validateRepository.ts` has no file-level skip list of its own to keep in sync, since its size check uses GitHub's own reported repository size rather than a local file walk.
+- A legitimate file that happens to match one of these patterns (e.g. a source file literally named like a lockfile, or a meaningfully large non-decorative SVG diagram used as documentation) is silently excluded; this is the same accepted tradeoff already made for symlinks and oversized files.
+- The 2,000-character cap on `CHANGELOG.md`/`LICENSE` has not been tuned against real repositories and may need adjusting once more scans are run.
+
+---
+
 ## Default Branch and Exact Commit Identification
 
 ### Decision
