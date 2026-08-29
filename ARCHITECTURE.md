@@ -530,8 +530,8 @@ backend/
 │   │
 │   ├── orchestration/
 │   │   ├── guideSections.ts
-│   │   ├── estimateChunkTokens.ts          # not yet implemented — tracked in OSP-48
-│   │   ├── budgetChunkPerSection.ts               # not yet implemented — tracked in OSP-47
+│   │   ├── estimateChunkTokens.ts          # token-cost measurement (tiktoken)
+│   │   ├── budgetChunkPerSection.ts       # per-section, budget-filling evidence selection
 │   │   ├── scoreChunk.ts
 │   │   ├── generateGuideSection.ts
 │   │   └── generateGuide.ts
