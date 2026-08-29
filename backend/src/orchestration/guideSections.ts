@@ -24,5 +24,17 @@ const GUIDE_SECTIONS: GuideSection[] = [
     { id: "testing", title: "Testing" },
 ];
 
-export { GUIDE_SECTIONS };
+// Fixed per-section token budgets for evidence selection (see DECISIONS.md >
+// "Token-Budgeted, Section-Scored Evidence Selection (Token Ceiling Fix)").
+// A starting proposal, not a measured ceiling - revisit against a real
+// target once one is agreed on.
+const SECTION_BUDGETS: Record<GuideSectionId, number> = {
+    overview: 12000,
+    setup: 9000,
+    running: 6000,
+    structure: 21000,
+    testing: 12000,
+};
+
+export { GUIDE_SECTIONS, SECTION_BUDGETS };
 export type { GuideSectionId, GuideSection };
