@@ -541,8 +541,8 @@ The scoring rubric itself — the actual rules mapping a chunk's `filePurpose`, 
 ### Consequences
 
 - New files planned under `backend/src/orchestration/`:
-  - `estimateChunkTokens.ts` — wraps tiktoken; token-cost measurement, computed once per chunk. Not yet implemented; tracked as OSP-48.
-  - `budgetChunkPerSection.ts` — the per-section, budget-filling selection algorithm; takes a chunk-scoring function as a parameter so scoring can be built and swapped independently. Not yet implemented; tracked as OSP-47.
+  - `estimateChunkTokens.ts` — wraps tiktoken; token-cost measurement, computed once per chunk. Implemented; tracked as OSP-48.
+  - `budgetChunkPerSection.ts` — the per-section, budget-filling selection algorithm; takes a chunk-scoring function as a parameter so scoring can be built and swapped independently. Implemented; tracked as OSP-47.
   - `scoreChunkForSections.ts` — the real rule-based section-scoring rubric. Not yet implemented; `budgetChunkPerSection.ts` is developed and tested against a placeholder scoring function in the meantime.
 - `generateGuide.ts` now calls the selection step before `generateGuideSection`, and passes its selected subset instead of the full scanned chunk list.
 - This extends "Programmatically Assembled Uncertainty Section": the Uncertainties and Missing Information section now also reports chunks excluded by token budget, alongside files skipped during discovery, classification, or chunking.
