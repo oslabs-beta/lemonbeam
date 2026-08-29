@@ -165,4 +165,16 @@ describe("markdownChunker", () => {
         expectChunksUnderTokenCap(chunks);
         expect(chunks.every((chunk) => chunk.text.trim().length > 0)).toBe(true);
     });
+
+    it("preserves trailing blank lines when splitting oversized markdown", () => {
+        const paragraph =
+            "This paragraph describes setup, running, structure, and testing details with enough repeated content to force multiple markdown chunks.";
+
+        const content = `${Array.from({ length: 80 }, () => paragraph).join("\n\n")}\n\n\n`;
+
+        const chunks = markdownChunker(makeInput(content));
+
+        expect(chunks.length).toBeGreaterThan(1);
+        expect(chunks.map((chunk) => chunk.text).join("")).toBe(content);
+    });
 });

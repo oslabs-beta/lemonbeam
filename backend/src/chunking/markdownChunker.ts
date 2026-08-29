@@ -1,8 +1,8 @@
 // Markdown docs chunker.
 // This file will split Markdown files by headings so README/docs sections
 // like Installation, Usage, and Testing become retrievable chunks.
-import type { ChunkInput, Chunk } from '../types/chunk.js'
-import { estimateTokens } from '../orchestration/estimateChunkTokens.js'
+import type { ChunkInput, Chunk } from '../types/chunk.js';
+import { estimateTokens } from '../orchestration/estimateChunkTokens.js';
 
 const MAX_MARKDOWN_CHUNK_TOKENS = 500;
 
@@ -147,6 +147,8 @@ function splitIntoParagraphBlocks(sourceLines: SourceLine[]): SourceLine[][] {
 
     if (currentBlock.some((line) => line.text.trim().length > 0)) {
         paragraphBlocks.push(currentBlock);
+    } else if (currentBlock.length > 0 && paragraphBlocks.length > 0) {
+        paragraphBlocks[paragraphBlocks.length - 1].push(...currentBlock);
     }
 
     return paragraphBlocks;
