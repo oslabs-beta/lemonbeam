@@ -16,7 +16,7 @@ import type { ScoreChunkForSections } from "./budgetChunkPerSection.js";
 // alone — a README's "Installation" heading and its "Architecture" heading
 // are both docs, but relevant to different guide sections.
 const HEADING_KEYWORDS: Partial<Record<GuideSectionId, RegExp>> = {
-    setup: /install|prerequisite|requirement|configur/i,
+    setup: /setup|set\s*up|install|prerequisite|requirement|configur/i,
     running: /run|start|dev|launch|usage/i,
     testing: /test/i,
     structure: /structure|folder|architecture|layout|organi[sz]/i,
