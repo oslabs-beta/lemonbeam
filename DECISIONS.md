@@ -543,7 +543,7 @@ The scoring rubric itself — the actual rules mapping a chunk's `filePurpose`, 
 - New files planned under `backend/src/orchestration/`:
   - `estimateChunkTokens.ts` — wraps tiktoken; token-cost measurement, computed once per chunk. Implemented; tracked as OSP-48.
   - `budgetChunkPerSection.ts` — the per-section, budget-filling selection algorithm; takes a chunk-scoring function as a parameter so scoring can be built and swapped independently. Implemented; tracked as OSP-47.
-  - `scoreChunkForSections.ts` — the real rule-based section-scoring rubric. Not yet implemented; `budgetChunkPerSection.ts` is developed and tested against a placeholder scoring function in the meantime.
+  - `scoreChunk.ts` — the real rule-based section-scoring rubric. Implemented; tracked as OSP-50.
 - `generateGuide.ts` now calls the selection step before `generateGuideSection`, and passes its selected subset instead of the full scanned chunk list.
 - This extends "Programmatically Assembled Uncertainty Section": the Uncertainties and Missing Information section now also reports chunks excluded by token budget, alongside files skipped during discovery, classification, or chunking.
 - `chunkFile.ts`, the four chunkers, the shared `Chunk` type, and `prompts/mvpGuidePrompt.ts` are unchanged — token cost and section scores are computed and consumed entirely within `orchestration/`, never persisted to SQLite, and recomputed fresh each scan, consistent with "In-Memory Chunk Storage for the MVP, SQLite as a Stretch Goal."

@@ -23,7 +23,7 @@ import type { SkippedFile } from "../scan/scanService.js";
 import { generateGuideSection } from "./generateGuideSection.js";
 import { budgetChunkPerSection } from "./budgetChunkPerSection.js";
 import { SECTION_BUDGETS } from "./guideSections.js";
-import { placeholderScoreChunk } from "./placeholderScoreChunk.js";
+import { scoreChunk } from "./scoreChunk.js";
 
 // The full guide as one markdown string, ready to hand back to the caller.
 type GuideResult = {
@@ -82,7 +82,7 @@ async function generateGuide(
     skippedFiles: SkippedFile[],
     openRouterApiKey: string
 ): Promise<GuideResult> {
-    const { included, excluded } = budgetChunkPerSection(chunks, SECTION_BUDGETS, placeholderScoreChunk);
+    const { included, excluded } = budgetChunkPerSection(chunks, SECTION_BUDGETS, scoreChunk);
 
     const { text } = await generateGuideSection({ openRouterApiKey, chunks: included });
     const uncertaintiesSection = buildUncertaintiesSection(skippedFiles, excluded);
