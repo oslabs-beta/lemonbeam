@@ -310,7 +310,7 @@ The orchestration files are:
 orchestration/
 ├── guideSections.ts
 ├── estimateChunkTokens.ts          # not yet implemented — tracked in OSP-48
-├── selectEvidence.ts               # not yet implemented — tracked in OSP-47
+├── budgetChunkPerSection.ts               # not yet implemented — tracked in OSP-47
 ├── scoreChunkForSections.ts
 ├── generateGuideSection.ts
 └── generateGuide.ts
@@ -326,13 +326,13 @@ Defines the primary guide section(s) LemonBeam generates and connects each to it
 
 Estimates a chunk's token cost using tiktoken, computed once per chunk before section scoring and selection run. Pure measurement — no knowledge of sections, budgets, or scoring (see DECISIONS.md > "Token-Budgeted, Section-Scored Evidence Selection (Token Ceiling Fix)").
 
-#### `selectEvidence.ts` _(not yet implemented — tracked in OSP-47)_
+#### `budgetChunkPerSection.ts` _(not yet implemented — tracked in OSP-47)_
 
 Given all chunks retrieved for a scan, a fixed per-section token budget, and a chunk-scoring function, picks each section's highest-scoring chunks up to its budget, then returns the deduplicated union across all five sections as `included`, and everything no section picked as `excluded`. Takes scoring as an injected function so the selection algorithm and the scoring rubric can be built and tested independently.
 
 #### `scoreChunkForSections.ts`
 
-The rule-based rubric scoring one chunk against every guide section (via `filePurpose`, `chunkKind`, and Markdown heading text), rather than assigning a chunk to a single section. Not yet implemented as of this writing; `selectEvidence.ts` is developed against a placeholder scoring function in the meantime.
+The rule-based rubric scoring one chunk against every guide section (via `filePurpose`, `chunkKind`, and Markdown heading text), rather than assigning a chunk to a single section. Not yet implemented as of this writing; `budgetChunkPerSection.ts` is developed against a placeholder scoring function in the meantime.
 
 #### `generateGuideSection.ts`
 
@@ -352,7 +352,7 @@ For the MVP this runs once, for the combined task. In the stretch goal, it runs 
 Coordinates the complete guide:
 
 1. reads the section definition(s)
-2. selects a token-budgeted evidence subset via `selectEvidence.ts` before generation starts
+2. selects a token-budgeted evidence subset via `budgetChunkPerSection.ts` before generation starts
 3. starts the generation task(s)
 4. waits for the result(s)
 5. sorts the sections into the fixed order
@@ -418,7 +418,7 @@ Missing or unclear information should be returned as uncertainty instead of bein
 
 The Uncertainties and Missing Information section is not produced through another independent LLM call.
 
-Each primary section task may return uncertainty information. `generateGuide.ts` collects those uncertainty items, along with the list of files skipped earlier during discovery, classification, or chunking (see `DECISIONS.md` > "Skipped Files Are Not Fatal, and Are Reported") and the chunks `selectEvidence.ts` excluded for exceeding a section's token budget (see `DECISIONS.md` > "Token-Budgeted, Section-Scored Evidence Selection (Token Ceiling Fix)"), and assembles them into the final section.
+Each primary section task may return uncertainty information. `generateGuide.ts` collects those uncertainty items, along with the list of files skipped earlier during discovery, classification, or chunking (see `DECISIONS.md` > "Skipped Files Are Not Fatal, and Are Reported") and the chunks `budgetChunkPerSection.ts` excluded for exceeding a section's token budget (see `DECISIONS.md` > "Token-Budgeted, Section-Scored Evidence Selection (Token Ceiling Fix)"), and assembles them into the final section.
 
 The exact guide-section wording and ordering belong in `PROJECT_BRIEF.md`.
 
@@ -529,7 +529,7 @@ backend/
 │   ├── orchestration/
 │   │   ├── guideSections.ts
 │   │   ├── estimateChunkTokens.ts          # not yet implemented — tracked in OSP-48
-│   │   ├── selectEvidence.ts               # not yet implemented — tracked in OSP-47
+│   │   ├── budgetChunkPerSection.ts               # not yet implemented — tracked in OSP-47
 │   │   ├── scoreChunkForSections.ts
 │   │   ├── generateGuideSection.ts
 │   │   └── generateGuide.ts
