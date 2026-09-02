@@ -6,6 +6,8 @@
     "node": "^22.13.0 || >=24"
   },
   "scripts": {
+    "build": "npx tsc",
+    "scan": "npm run build && node dist/cli/index.js scan",
     "dev:frontend": "npm --prefix frontend run dev",
     "dev:backend": "npm --prefix backend run dev",
     "dev": "concurrently -k -n frontend,backend -c cyan,magenta \"npm run dev:frontend\" \"npm run dev:backend\"",
@@ -13,9 +15,24 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
+  "bin": {
+    "lemonbeam": "./dist/cli/index.js"
+  },
   "devDependencies": {
     "@types/node": "^26.1.2",
+    "@types/tar": "^6.1.13",
     "concurrently": "^10.0.4",
+    "typescript": "^7.0.2",
     "vitest": "^4.1.10"
+  },
+  "dependencies": {
+    "commander": "^15.0.0",
+    "dotenv": "^17.4.2",
+    "jsonc-parser": "^3.3.1",
+    "openai": "^7.8.0",
+    "tar": "^7.5.22",
+    "tiktoken": "^1.0.22",
+    "tree-sitter": "^0.25.1",
+    "tree-sitter-typescript": "^0.23.2"
   }
 }

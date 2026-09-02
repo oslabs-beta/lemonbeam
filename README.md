@@ -123,6 +123,41 @@ npm install
 
 ---
 
+## Using the CLI
+
+LemonBeam can be run directly from your terminal as a command-line tool to analyze any local project directory and generate an AI-powered documentation guide.
+
+### 1. Configure Your Environment
+
+Create a `.env` file in the root of your project directory and add your OpenRouter API key:
+
+```env
+OPENROUTER_API_KEY=your_openrouter_api_key_here
+```
+
+### 2. Link LemonBeam Locally
+
+If you are testing or running the tool locally from source, link it to your project:
+
+```bash
+npm link lemonbeam
+```
+
+### 3. Run the CLI
+
+Navigate into the root of any project you want to scan and execute:
+
+```bash
+npx lemonbeam
+```
+
+### 4. Choose Your Output Format
+
+When the scanning pipeline finishes, you'll be prompted interactively in your terminal:
+
+- Type `y` to automatically save the generated guide as a markdown file in your project directory.
+- Type `n` to print and view the generated guide right in your terminal.
+
 ## Running the Project
 
 ### Frontend
@@ -131,42 +166,36 @@ npm install
 cd frontend
 
 npm run dev
-```
-
 ### Backend
 
-```bash
 cd backend
 
 npm run dev
-```
-
 ---
 
 ## Running Tests
 
-Automated test commands are not yet defined in the repository’s `package.json` scripts.
+Automated test commands are not yet defined in the repository’s package.json scripts.
 
-See `TESTING.md` for the planned testing strategy and for when runnable test commands are added.
+See TESTING.md for the planned testing strategy and for when runnable test commands are added.
 
 ---
 
 ## Documentation
 
-- `PROJECT_BRIEF.md` — project goals, MVP, user flow, and technical challenges
-- `ARCHITECTURE.md` — system architecture and backend design
-- `DATABASE.md` — temporary SQLite schema and relationships
-- `API_CONTRACT.md` — frontend/backend API specification
-- `TESTING.md` — testing strategy
-- `DECISIONS.md` — architectural decisions and rationale
-- `CONTRIBUTING.md` — contributor workflow
-- `AGENTS.md` — instructions for AI coding agents
-
+PROJECT_BRIEF.md — project goals, MVP, user flow, and technical challenges
+ARCHITECTURE.md — system architecture and backend design
+DATABASE.md — temporary SQLite schema and relationships
+API_CONTRACT.md — frontend/backend API specification
+TESTING.md — testing strategy
+DECISIONS.md — architectural decisions and rationale
+CONTRIBUTING.md — contributor workflow
+AGENTS.md — instructions for AI coding agents
 ---
 
 ## Contributing
 
-Please read `CONTRIBUTING.md` before opening an issue or submitting a pull request.
+Please read CONTRIBUTING.md before opening an issue or submitting a pull request.
 
 ---
 
