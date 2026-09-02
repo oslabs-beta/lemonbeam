@@ -33,6 +33,8 @@
 // See DECISIONS.md > "Thin Routes; `pipelineManager.ts` Sequences the Scan"
 // and ARCHITECTURE.md > "Express Backend" / "End-to-End Scan Lifecycle".
 import { randomUUID } from "node:crypto";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { createTempDirectory } from "./utils/tempDirectory.js";
 import { cleanupTempDirectory } from "./utils/cleanup.js";
 import { validateRepository } from "./github/validateRepository.js";
@@ -55,18 +57,59 @@ type RunScanResult = {
 
 async function runScan(input: RunScanInput): Promise<RunScanResult> {
   const scanId = `scan_${randomUUID()}`;
-  const workspace = await createTempDirectory(scanId);
+
+  // Intelligent check: Is this a local path or a remote URL?
+  const isLocalPath =
+    path.isAbsolute(input.repositoryUrl) ||
+    input.repositoryUrl.startsWith(".") ||
+    fs.existsSync(input.repositoryUrl);
+
+  let repository: ValidatedRepository;
+  let repositoryDirectory: string;
+  let workspace:
+    | { scanDirectory: string; repositoryDirectory: string }
+    | undefined;
 
   try {
-    const repository = await validateRepository(input.repositoryUrl);
+    if (isLocalPath) {
+      const resolvedPath = path.resolve(input.repositoryUrl);
 
-    const repositoryDirectory = await downloadSnapshot({
-      owner: repository.owner,
-      name: repository.name,
-      commitSha: repository.commitSha,
-      scanDirectory: workspace.scanDirectory,
-      repositoryDirectory: workspace.repositoryDirectory,
-    });
+      if (
+        !fs.existsSync(resolvedPath) ||
+        !fs.statSync(resolvedPath).isDirectory()
+      ) {
+        throw new Error(
+          `Local repository path must be an existing directory: ${resolvedPath}`,
+        );
+      }
+
+      const folderName = path.basename(resolvedPath);
+      console.log(`📂 Scanning local directory: ${resolvedPath}`);
+
+      repository = {
+        owner: "local",
+        name: folderName,
+        url: resolvedPath,
+        defaultBranch: "HEAD",
+        commitSha: "local",
+      };
+
+      repositoryDirectory = resolvedPath;
+    } else {
+      // Only create the temp workspace if it's a remote GitHub repository
+      workspace = await createTempDirectory(scanId);
+
+      console.log(`🌐 Fetching remote repository: ${input.repositoryUrl}`);
+      repository = await validateRepository(input.repositoryUrl);
+
+      repositoryDirectory = await downloadSnapshot({
+        owner: repository.owner,
+        name: repository.name,
+        commitSha: repository.commitSha,
+        scanDirectory: workspace.scanDirectory,
+        repositoryDirectory: workspace.repositoryDirectory,
+      });
+    }
 
     const scanResult = await scanRepository(repositoryDirectory, scanId);
     const guide = await generateGuide(
@@ -82,7 +125,10 @@ async function runScan(input: RunScanInput): Promise<RunScanResult> {
     };
   } finally {
     try {
-      await cleanupTempDirectory(workspace.scanDirectory);
+      // Only clean up if a workspace was actually created
+      if (workspace) {
+        await cleanupTempDirectory(workspace.scanDirectory);
+      }
     } catch {
       // Cleanup failures should not mask the scan result or original scan error.
     }

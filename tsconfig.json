@@ -6,12 +6,16 @@
     "strict": true,
     "types": ["node", "vitest"],
     "allowImportingTsExtensions": true,
-    "noEmit": true
+    "rewriteRelativeImportExtensions": true,
+    "skipLibCheck": true,
+    "rootDir": ".",
+    "outDir": "./dist"
   },
   "include": [
     "tests/**/*.ts",
     "backend/src/**/*.ts",
     "frontend/src/**/*.ts",
+    "cli/**/*.ts",
     "vitest.config.ts"
   ]
 }
