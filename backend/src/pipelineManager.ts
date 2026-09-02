@@ -57,27 +57,33 @@ type RunScanResult = {
 
 async function runScan(input: RunScanInput): Promise<RunScanResult> {
   const scanId = `scan_${randomUUID()}`;
-  const workspace = await createTempDirectory(scanId);
-  let isLocalScan = false;
+
+  // Intelligent check: Is this a local path or a remote URL?
+  const isLocalPath =
+    path.isAbsolute(input.repositoryUrl) ||
+    input.repositoryUrl.startsWith(".") ||
+    fs.existsSync(input.repositoryUrl);
+
+  let repository: ValidatedRepository;
+  let repositoryDirectory: string;
+  let workspace:
+    | { scanDirectory: string; repositoryDirectory: string }
+    | undefined;
 
   try {
-    // Intelligent check: Is this a local path or a remote URL?
-    const isLocalPath =
-      input.repositoryUrl.startsWith("/") ||
-      input.repositoryUrl.startsWith("./") ||
-      input.repositoryUrl.startsWith("../") ||
-      path.isAbsolute(input.repositoryUrl) ||
-      (fs.existsSync(input.repositoryUrl) &&
-        !input.repositoryUrl.includes("github.com"));
-
-    let repository: ValidatedRepository;
-    let repositoryDirectory: string;
-
     if (isLocalPath) {
-      isLocalScan = true;
       const resolvedPath = path.resolve(input.repositoryUrl);
-      const folderName = path.basename(resolvedPath);
 
+      if (
+        !fs.existsSync(resolvedPath) ||
+        !fs.statSync(resolvedPath).isDirectory()
+      ) {
+        throw new Error(
+          `Local repository path must be an existing directory: ${resolvedPath}`,
+        );
+      }
+
+      const folderName = path.basename(resolvedPath);
       console.log(`📂 Scanning local directory: ${resolvedPath}`);
 
       repository = {
@@ -90,7 +96,9 @@ async function runScan(input: RunScanInput): Promise<RunScanResult> {
 
       repositoryDirectory = resolvedPath;
     } else {
-      // Remote GitHub repository flow (for Browser UI)
+      // Only create the temp workspace if it's a remote GitHub repository
+      workspace = await createTempDirectory(scanId);
+
       console.log(`🌐 Fetching remote repository: ${input.repositoryUrl}`);
       repository = await validateRepository(input.repositoryUrl);
 
@@ -117,12 +125,12 @@ async function runScan(input: RunScanInput): Promise<RunScanResult> {
     };
   } finally {
     try {
-      // Only clean up workspace temp directories created for remote downloads
-      if (!isLocalScan) {
+      // Only clean up if a workspace was actually created
+      if (workspace) {
         await cleanupTempDirectory(workspace.scanDirectory);
       }
     } catch {
-      // Cleanup failures should not mask the original error
+      // Cleanup failures should not mask the scan result or original scan error.
     }
   }
 }

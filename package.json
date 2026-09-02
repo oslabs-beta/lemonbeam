@@ -7,7 +7,7 @@
   },
   "scripts": {
     "build": "npx tsc",
-    "scan": "npm run build && node dist/cli/index.js scan",
+    "scan": "npm run build && node dist/cli/index.js",
     "dev:frontend": "npm --prefix frontend run dev",
     "dev:backend": "npm --prefix backend run dev",
     "dev": "concurrently -k -n frontend,backend -c cyan,magenta \"npm run dev:frontend\" \"npm run dev:backend\"",

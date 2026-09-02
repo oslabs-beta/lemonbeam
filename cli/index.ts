@@ -60,7 +60,10 @@ program
         if (answer.trim().toLowerCase() === "y") {
             const repoName = result.repository?.name || path.basename(targetPath);
             const fileName = `${repoName}-guide.md`;
-            const outputPath = path.resolve(process.cwd(), fileName);
+            const outputDir = /^https?:\/\//.test(targetPath)
+                ? process.cwd()
+                : path.resolve(targetPath);
+            const outputPath = path.resolve(outputDir, fileName);
 
             await fs.writeFile(outputPath, result.guide.markdown, "utf-8");
             console.log(`✅ Generated guide saved to: ${outputPath}`);

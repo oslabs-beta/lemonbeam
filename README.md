@@ -166,19 +166,28 @@ When the scanning pipeline finishes, you'll be prompted interactively in your te
 cd frontend
 
 npm run dev
+```
 ### Backend
+
+```bash
 
 cd backend
 
 npm run dev
+```
 ---
 
 ## Running Tests
 
-Automated test commands are not yet defined in the repository’s package.json scripts.
+To run the automated test suite, use the following commands:
 
-See TESTING.md for the planned testing strategy and for when runnable test commands are added.
+```bash
+# Run tests once
+npm test
 
+# Run tests in watch mode
+npm run test:watch
+```
 ---
 
 ## Documentation
