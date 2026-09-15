@@ -31,7 +31,7 @@ const GUIDE_SECTIONS: GuideSection[] = [
 const SECTION_BUDGETS: Record<GuideSectionId, number> = {
     overview: 12000,
     setup: 9000,
-    running: 6000,
+    running: 9000,
     structure: 21000,
     testing: 12000,
 };

@@ -60,6 +60,24 @@ describe("scoreChunk", () => {
         expect(scores.testing).toBeGreaterThan(0);
     });
 
+    it("scores a source chunk under examples/ positively for running, unlike an equivalent chunk elsewhere", () => {
+        const exampleChunk = makeChunk({
+            filePath: "examples/hello-world/index.js",
+        });
+        const ordinarySourceChunk = makeChunk({
+            filePath: "src/example.ts",
+        });
+
+        const exampleScores = scoreChunk(exampleChunk);
+        const ordinaryScores = scoreChunk(ordinarySourceChunk);
+
+        expect(exampleScores.running).toBeGreaterThan(0);
+        expect(exampleScores.structure).toBeGreaterThan(0);
+
+        expect(ordinaryScores.running).toBe(0);
+        expect(ordinaryScores.structure).toBeGreaterThan(0);
+    });
+
     it("returns a defined score for every section, for every FilePurpose/chunkKind combination", () => {
         // Every value from chunk.ts's FilePurpose and ChunkKind unions,
         // kept in sync by hand since TypeScript can't enumerate a union

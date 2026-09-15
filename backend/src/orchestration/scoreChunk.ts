@@ -27,6 +27,13 @@ const HEADING_KEYWORDS: Partial<Record<GuideSectionId, RegExp>> = {
 // Structure.
 const ENTRY_POINT_NAMES = /^(app|index|main|server)$/i;
 
+// Path segment used to recognize runnable sample/demo code, mirroring how
+// classifyFile.ts already hardcodes directory names like "test"/"scripts"/
+// "docs" for its own purpose detection. Source chunks living under one of
+// these directories are relevant to Running, not just Structure -- a demo
+// app under examples/ is literally something a reader would run.
+const EXAMPLE_PATH_SEGMENT = /(^|[\\/])examples?([\\/]|$)/i;
+
 const scoreChunk: ScoreChunkForSections = (chunk: Chunk) => {
     const scores: Record<GuideSectionId, number> = {
         overview: 0,
@@ -87,6 +94,10 @@ const scoreChunk: ScoreChunkForSections = (chunk: Chunk) => {
         if (chunk.chunkName && ENTRY_POINT_NAMES.test(chunk.chunkName)) {
             scores.overview = 1;
         }
+    }
+
+    if (chunk.filePurpose === "source" && EXAMPLE_PATH_SEGMENT.test(chunk.filePath)) {
+        scores.running = 1;
     }
 
     // Every other combination (filePurpose: "unknown", chunkKind:
