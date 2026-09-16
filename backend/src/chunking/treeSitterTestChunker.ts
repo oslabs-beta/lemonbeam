@@ -2,7 +2,7 @@ import Parser from "tree-sitter";
 import TypeScriptPackage from "tree-sitter-typescript";
 import JavaScriptGrammar from "tree-sitter-javascript";
 import type { Chunk, ChunkKind, ChunkInput } from "../types/chunk.js";
-import { chunkWithTreeSitter, buildChunk } from "./treeSitterChunker.js";
+import { chunkWithTreeSitter, buildChunk, readInChunks } from "./treeSitterChunker.js";
 
 const TypeScript = TypeScriptPackage.typescript;
 
@@ -116,7 +116,7 @@ function chunkTestFile(input: ChunkInput): Chunk[] {
   } else if (input.language === "javascript") {
     parser.setLanguage(JavaScriptGrammar);
   }
-  const tree = parser.parse(input.content);
+  const tree = parser.parse(readInChunks(input.content));
 
   const testChunks: Chunk[] = [];
   walkForTestConstructs(tree.rootNode, testChunks, input);
