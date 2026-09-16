@@ -27,6 +27,13 @@ const HEADING_KEYWORDS: Partial<Record<GuideSectionId, RegExp>> = {
 // Structure.
 const ENTRY_POINT_NAMES = /^(app|index|main|server)$/i;
 
+// Path segment used to recognize runnable sample/demo code, mirroring how
+// classifyFile.ts already hardcodes directory names like "test"/"scripts"/
+// "docs" for its own purpose detection. Source chunks living under one of
+// these directories are relevant to Running, not just Structure -- a demo
+// app under examples/ is literally something a reader would run.
+const EXAMPLE_PATH_SEGMENT = /(^|[\\/])examples?([\\/]|$)/i;
+
 const scoreChunk: ScoreChunkForSections = (chunk: Chunk) => {
     const scores: Record<GuideSectionId, number> = {
         overview: 0,
@@ -65,6 +72,21 @@ const scoreChunk: ScoreChunkForSections = (chunk: Chunk) => {
         scores.running = 1;
     }
 
+    // A CI workflow documents the actual build/test/run commands, often
+    // more reliably than prose docs do -- relevant to all three.
+    if (chunk.chunkKind === "ci_config") {
+        scores.setup = 1;
+        scores.running = 1;
+        scores.testing = 1;
+    }
+
+    // A Compose file shows how to bring the project up locally -- Setup and
+    // Running, not Testing.
+    if (chunk.chunkKind === "compose_config") {
+        scores.setup = 1;
+        scores.running = 1;
+    }
+
     if (chunk.filePurpose === "docs" && chunk.chunkKind === "markdown_section") {
         const heading = chunk.chunkName ?? "";
         let matchedAny = false;
@@ -87,6 +109,10 @@ const scoreChunk: ScoreChunkForSections = (chunk: Chunk) => {
         if (chunk.chunkName && ENTRY_POINT_NAMES.test(chunk.chunkName)) {
             scores.overview = 1;
         }
+    }
+
+    if (chunk.filePurpose === "source" && EXAMPLE_PATH_SEGMENT.test(chunk.filePath)) {
+        scores.running = 1;
     }
 
     // Every other combination (filePurpose: "unknown", chunkKind:
