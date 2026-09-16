@@ -54,9 +54,10 @@ Example: `test-runs/lemonbeam-5.6-luna/express-ka.json`
 ## JSON shape — draft, confirm with the team before treating as final
 
 Both folders share the same top-level metadata fields (`tester`, `model`,
-`costUsd`, `usage`, `wallClockSeconds`, etc.) — every field below is present
-in every test file, in both folders. Only `response`, plus two extra fields
-in the full-dump case, differ between the two.
+`costUsd`, `usage`, `wallClockSeconds`, etc.). `requestPayload` is optional
+when no payload was captured; otherwise fields should be present exactly as
+recorded. Only `response`, plus two extra fields in the full-dump case, differ
+between the two.
 
 **A complete `lemonbeam-5.6-luna/` file** — `response` is the literal,
 unedited JSON body LemonBeam's own `/scans` endpoint returned:
@@ -88,7 +89,7 @@ unedited JSON body LemonBeam's own `/scans` endpoint returned:
 
 **A complete `full-dump-5.6-luna/` file** — same metadata fields as above,
 plus two extra fields describing how the raw content reached the model
-(`attachMethod`, `requestPayload`); `response` drops the fields only
+(`attachMethod`, optional `requestPayload`); `response` drops the fields only
 LemonBeam's own pipeline produces (`scanId`, `defaultBranch`, `commitSha`),
 since a raw-dump run never goes through that pipeline at all:
 
