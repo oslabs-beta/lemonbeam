@@ -1,0 +1,53 @@
+{
+  "tester": "ka",
+  "model": "openai/gpt-5.6-luna",
+  "provider": "OpenAI",
+  "costUsd": 0,
+  "usage": null,
+  "wallClockSeconds": null,
+  "timeToFirstTokenSeconds": null,
+  "repoSize": "23,073 KB (GitHub-reported) -- working-tree dump excluding .git/binaries is 823 files, 7.86MB, roughly 2,543,011 tokens per tiktoken o200k_base",
+  "attachMethod": "file-upload",
+  "note": "Deliberate failure case: raw-dumping moment/moment's full source (see test-runs/lemonbeam-5.6-luna/moment-ka.json for the same commit run through lemonbeam's actual pipeline) to confirm, not just estimate, that this repo's raw content cannot fit in gpt-5.6-luna's context window at all -- the 'key proof point for the fixed-budget architecture' claim from the original test-runs/pre-standardization/model-swap-gpt-5.6-luna/moment-ka.json note, which had never actually been attempted until now.\n\nWorth recording as a caveat, not a clean repro of the documented full-dump method: the file was attached as an upload (7.5MB TXT chip), not pasted raw into the message body the way every other full-dump test this session was -- attachMethod is 'file-upload', not 'pasted-raw'. Additionally, the model selector showed 'Auto Router' rather than openai/gpt-5.6-luna being pinned directly. Both were flagged and checked before treating this as valid evidence.\n\nConfirmed via the full error response: Auto Router did resolve to the intended model (pipeline[0].data.resolved_to = 'openai/gpt-5.6-luna-20260709'), not an unrelated one, so this does test what we intended, just via routing rather than a direct pin.\n\nTwo numbers in the error are worth noting:\n- Context limit reported: 1,310,720 tokens. This corrects the 1,050,000 figure recorded in the original moment-ka.json note, which was an estimate, not sourced from the provider directly -- that earlier note should be corrected to match this authoritative number.\n- Requested tokens: 2,059,892, vs. this session's own tiktoken count of 2,543,011 for the same dump -- a ~483K gap, likely explained by the file-upload path being tokenized/counted differently than raw pasted text, or by OpenRouter's own accounting differing from local tiktoken counting. Not reconciled further. Either number clears the 1,310,720 limit by a wide margin, so the core finding (moment's raw content cannot fit in this model's context, regardless of exact count) holds under either figure.\n\ncostUsd is 0 and usage is null because nothing was billed for a rejected request (confirmed with the tester). wallClockSeconds not captured since the request errored before that was recorded.",
+  "response": {
+    "error": {
+      "message": "This endpoint's maximum context length is 1310720 tokens. However, you requested about 2059892 tokens (2059892 of text input). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.",
+      "code": 400,
+      "metadata": {
+        "provider_name": null
+      }
+    },
+    "openrouter_metadata": {
+      "requested": "openrouter/auto",
+      "strategy": "auto",
+      "region": "PHX",
+      "summary": "strategy=auto, available=1",
+      "attempt": 0,
+      "is_byok": false,
+      "endpoints": {
+        "total": 36,
+        "available": [
+          {
+            "provider": "Cloudflare",
+            "model": "deepseek/deepseek-v4-flash-20260731",
+            "selected": false
+          }
+        ]
+      },
+      "pipeline": [
+        {
+          "type": "plugin",
+          "name": "auto-router",
+          "summary": "Routed to openai/gpt-5.6-luna-20260709 for content_writing",
+          "data": {
+            "resolved_to": "openai/gpt-5.6-luna-20260709",
+            "task_type": "content_writing",
+            "fallback_models": [
+              "deepseek/deepseek-v4-flash-20260731"
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
