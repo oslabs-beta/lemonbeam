@@ -82,4 +82,14 @@ describe("classifyFile", () => {
     const result = classifyFile(".github/ISSUE_TEMPLATE/bug_report.yml");
     expect(result.filePurpose).toBe("unknown");
   });
+
+  it("does not classify a non-root .github/workflows path as config", () => {
+    const result = classifyFile("packages/foo/.github/workflows/ci.yml");
+    expect(result.filePurpose).toBe("unknown");
+  });
+
+  it("does not classify a nested .circleci config as config", () => {
+    const result = classifyFile(".circleci/old/config.yml");
+    expect(result.filePurpose).toBe("unknown");
+  });
 });

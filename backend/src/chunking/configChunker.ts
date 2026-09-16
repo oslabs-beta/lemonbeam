@@ -95,12 +95,17 @@ function detectCIOrComposeKind(filePath: string): "ci-config" | "compose" | unde
     }
 
     const segments = filePath.split(/[\\/]/);
-    // GitHub Actions: any .yml/.yaml file under .github/workflows/.
-    if (segments.includes(".github") && segments.includes("workflows")) {
+    // GitHub Actions and CircleCI only read their configs from a fixed
+    // location at the repository root, so this checks the first path
+    // segments specifically -- aligned with classifyFile.ts's
+    // isCIOrComposeFile, not just whether these names appear anywhere in
+    // the path.
+    // GitHub Actions: any .yml/.yaml file directly under .github/workflows/.
+    if (segments[0] === ".github" && segments[1] === "workflows") {
         return "ci-config";
     }
     // CircleCI: .circleci/config.yml
-    if (segments.includes(".circleci") && /^config\.ya?ml$/i.test(name)) {
+    if (segments[0] === ".circleci" && segments.length === 2 && /^config\.ya?ml$/i.test(name)) {
         return "ci-config";
     }
 

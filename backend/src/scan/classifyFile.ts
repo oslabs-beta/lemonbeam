@@ -93,12 +93,18 @@ function isCIOrComposeFile(filePath: string): boolean {
     }
 
     const segments = filePath.split(path.sep);
-    // GitHub Actions: any .yml/.yaml file under .github/workflows/.
-    if (segments.includes(".github") && segments.includes("workflows")) {
+    // GitHub Actions and CircleCI only read their configs from a fixed
+    // location at the repository root, not anywhere else in the tree — so
+    // this checks the first two path segments specifically, not just
+    // whether ".github"/"workflows"/".circleci" appear anywhere in the
+    // path (which would also match e.g. a vendored copy of another repo,
+    // or a fixture directory that happens to reuse those names).
+    // GitHub Actions: any .yml/.yaml file directly under .github/workflows/.
+    if (segments[0] === ".github" && segments[1] === "workflows") {
         return true;
     }
     // CircleCI: .circleci/config.yml
-    if (segments.includes(".circleci") && /^config\.ya?ml$/i.test(filename)) {
+    if (segments[0] === ".circleci" && segments.length === 2 && /^config\.ya?ml$/i.test(filename)) {
         return true;
     }
 
