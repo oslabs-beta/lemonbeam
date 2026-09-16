@@ -7,4 +7,6 @@ describe("configChunker", () => {
     it.todo("extracts tsconfig compiler options as a chunk");
     it.todo("extracts tool configuration (eslint/prettier) as a chunk");
     it.todo("extracts environment-variable examples (.env.example) as a chunk");
+    it.todo("extracts a GitHub Actions workflow (.github/workflows/*.yml) as a ci_config chunk");
+    it.todo("extracts a docker-compose.yml as a compose_config chunk");
 });

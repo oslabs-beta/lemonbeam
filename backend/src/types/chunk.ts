@@ -38,6 +38,8 @@ type ChunkKind =
   | "dependencies"
   | "compiler_options"
   | "tool_config"
+  | "ci_config"
+  | "compose_config"
   | "text_block"
   | "unknown";
 
@@ -223,6 +225,8 @@ export type {
     chunkKind: "dependencies"
     chunkKind: "compiler_options"
     chunkKind: "tool_config"
+    chunkKind: "ci_config"
+    chunkKind: "compose_config"
 
   Examples from fallback parsing:
     chunkKind: "text_block"

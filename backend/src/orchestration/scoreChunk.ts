@@ -72,6 +72,21 @@ const scoreChunk: ScoreChunkForSections = (chunk: Chunk) => {
         scores.running = 1;
     }
 
+    // A CI workflow documents the actual build/test/run commands, often
+    // more reliably than prose docs do -- relevant to all three.
+    if (chunk.chunkKind === "ci_config") {
+        scores.setup = 1;
+        scores.running = 1;
+        scores.testing = 1;
+    }
+
+    // A Compose file shows how to bring the project up locally -- Setup and
+    // Running, not Testing.
+    if (chunk.chunkKind === "compose_config") {
+        scores.setup = 1;
+        scores.running = 1;
+    }
+
     if (chunk.filePurpose === "docs" && chunk.chunkKind === "markdown_section") {
         const heading = chunk.chunkName ?? "";
         let matchedAny = false;
