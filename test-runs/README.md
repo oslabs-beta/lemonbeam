@@ -40,7 +40,13 @@ Example: `test-runs/lemonbeam-5.6-luna/express-ka.json`
 
 ## JSON shape — draft, confirm with the team before treating as final
 
-Every test file shares this outer shape:
+Both folders share the same top-level metadata fields (`tester`, `model`,
+`costUsd`, `usage`, `wallClockSeconds`, etc.) — every field below is present
+in every test file, in both folders. Only `response`, plus two extra fields
+in the full-dump case, differ between the two.
+
+**A complete `lemonbeam-5.6-luna/` file** — `response` is the literal,
+unedited JSON body LemonBeam's own `/scans` endpoint returned:
 
 ```json
 {
@@ -48,50 +54,52 @@ Every test file shares this outer shape:
   "model": "openai/gpt-5.6-luna",
   "provider": "OpenAI",
   "costUsd": 0.0176,
-  "usage": { "promptTokens": 0, "completionTokens": 0 },
-  "wallClockSeconds": 0,
-  "timeToFirstTokenSeconds": null,
+  "usage": { "promptTokens": 58279, "completionTokens": 2531 },
+  "wallClockSeconds": 27.73,
+  "timeToFirstTokenSeconds": 5.29,
   "repoSize": "23,073 KB (GitHub-reported) -- add any caveats about what this figure does/doesn't include",
   "note": "free-form observations: anything that looked wrong, surprising, or worth a follow-up",
-  "response": { ... }
+  "response": {
+    "scanId": "scan_...",
+    "repository": {
+      "owner": "expressjs",
+      "name": "express",
+      "url": "https://github.com/expressjs/express",
+      "defaultBranch": "master",
+      "commitSha": "..."
+    },
+    "guide": { "markdown": "..." }
+  }
 }
 ```
 
-`response` differs by folder, because the two methods genuinely return
-different things:
-
-**`lemonbeam-5.6-luna/response`** — the literal, unedited JSON body
-LemonBeam's own `/scans` endpoint returned:
-
-```json
-{
-  "scanId": "scan_...",
-  "repository": {
-    "owner": "expressjs",
-    "name": "express",
-    "url": "https://github.com/expressjs/express",
-    "defaultBranch": "master",
-    "commitSha": "..."
-  },
-  "guide": { "markdown": "..." }
-}
-```
-
-**`full-dump-5.6-luna/response`** — same `repository`/`guide` shape, minus
-the fields only LemonBeam's pipeline produces (`scanId`, `defaultBranch`,
-`commitSha`), plus two fields describing how the raw content reached the
-model:
+**A complete `full-dump-5.6-luna/` file** — same metadata fields as above,
+plus two extra fields describing how the raw content reached the model
+(`attachMethod`, `requestPayload`); `response` drops the fields only
+LemonBeam's own pipeline produces (`scanId`, `defaultBranch`, `commitSha`),
+since a raw-dump run never goes through that pipeline at all:
 
 ```json
 {
+  "tester": "ka",
+  "model": "openai/gpt-5.6-luna",
+  "provider": "OpenAI",
+  "costUsd": 0.044,
+  "usage": { "promptTokens": 193421, "completionTokens": 4428 },
+  "wallClockSeconds": 43.9,
+  "timeToFirstTokenSeconds": null,
+  "repoSize": "726 KB (working-tree dump, .git and binaries excluded)",
+  "note": "free-form observations: anything that looked wrong, surprising, or worth a follow-up",
   "attachMethod": "pasted-raw",
   "requestPayload": { "...": "the actual request sent, tools/system prompt included" },
-  "repository": {
-    "owner": "expressjs",
-    "name": "express",
-    "url": "https://github.com/expressjs/express"
-  },
-  "guide": { "markdown": "..." }
+  "response": {
+    "repository": {
+      "owner": "expressjs",
+      "name": "express",
+      "url": "https://github.com/expressjs/express"
+    },
+    "guide": { "markdown": "..." }
+  }
 }
 ```
 
