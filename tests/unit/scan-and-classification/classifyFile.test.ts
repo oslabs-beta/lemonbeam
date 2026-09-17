@@ -52,8 +52,44 @@ describe("classifyFile", () => {
     expect(result).toEqual({ filePurpose: "unknown", language: "text" });
   });
 
-  it("does not force a low-confidence file into an incorrect category", () => {
+  it("classifies docker-compose.yml as config", () => {
     const result = classifyFile("docker-compose.yml");
+    expect(result.filePurpose).toBe("config");
+  });
+
+  it("classifies docker-compose.override.yaml as config", () => {
+    const result = classifyFile("docker-compose.override.yaml");
+    expect(result.filePurpose).toBe("config");
+  });
+
+  it("classifies a GitHub Actions workflow as config regardless of filename", () => {
+    const result = classifyFile(".github/workflows/ci.yml");
+    expect(result.filePurpose).toBe("config");
+  });
+
+  it("classifies a CircleCI config as config", () => {
+    const result = classifyFile(".circleci/config.yml");
+    expect(result.filePurpose).toBe("config");
+  });
+
+  it("classifies .travis.yml, .gitlab-ci.yml, and azure-pipelines.yml as config", () => {
+    expect(classifyFile(".travis.yml").filePurpose).toBe("config");
+    expect(classifyFile(".gitlab-ci.yml").filePurpose).toBe("config");
+    expect(classifyFile("azure-pipelines.yml").filePurpose).toBe("config");
+  });
+
+  it("does not classify an unrelated yml file as config", () => {
+    const result = classifyFile(".github/ISSUE_TEMPLATE/bug_report.yml");
+    expect(result.filePurpose).toBe("unknown");
+  });
+
+  it("does not classify a non-root .github/workflows path as config", () => {
+    const result = classifyFile("packages/foo/.github/workflows/ci.yml");
+    expect(result.filePurpose).toBe("unknown");
+  });
+
+  it("does not classify a nested .circleci config as config", () => {
+    const result = classifyFile(".circleci/old/config.yml");
     expect(result.filePurpose).toBe("unknown");
   });
 });

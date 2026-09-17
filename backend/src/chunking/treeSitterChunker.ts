@@ -12,6 +12,25 @@ import type { Chunk, ChunkKind, ChunkInput } from "../types/chunk.js";
 // and .tsx); LemonBeam only parses plain TypeScript, not TSX.
 const TypeScript = TypeScriptPackage.typescript
 
+// This version of the native tree-sitter binding throws "Invalid argument"
+// when a SINGLE callback call returns >= 32768 characters -- not a limit on
+// total input size. A plain string fails because the binding's own internal
+// shim for it returns the entire remaining string on the first call, which
+// blows past that per-call ceiling for any input >= 32768 characters.
+// READ_CHUNK_SIZE must stay strictly under 32768 -- confirmed directly:
+// 32768 itself still fails (same off-by-one boundary), 32767 does not.
+// Kept well under that boundary rather than right at the edge of it.
+const READ_CHUNK_SIZE = 16 * 1024;
+
+function readInChunks(content: string) {
+  return (index: number): string | null => {
+    if (index >= content.length) {
+      return null; // signals end of input to tree-sitter
+    }
+    return content.slice(index, index + READ_CHUNK_SIZE);
+  };
+}
+
 // Entry point: parses the whole tree and returns every chunk found in this file.
 function chunkWithTreeSitter(input: ChunkInput): Chunk[] {
   const parser = new Parser();
@@ -23,7 +42,7 @@ function chunkWithTreeSitter(input: ChunkInput): Chunk[] {
     parser.setLanguage(JavaScriptGrammar);
   }
 
-  const tree = parser.parse(input.content);
+  const tree = parser.parse(readInChunks(input.content));
 
   const chunks: Chunk[] = [];
   walk(tree.rootNode, chunks, input);
@@ -204,4 +223,4 @@ function walk(node: Parser.SyntaxNode, chunks: Chunk[], input: ChunkInput) {
   }
 }
 
-export { chunkWithTreeSitter, buildChunk };
+export { chunkWithTreeSitter, buildChunk, readInChunks };

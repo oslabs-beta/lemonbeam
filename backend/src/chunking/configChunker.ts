@@ -40,6 +40,8 @@ type ConfigKind =
     | "eslint-js"
     | "prettier-json"
     | "prettier-js"
+    | "ci-config"
+    | "compose"
     | "generic-json"
     | "generic-code";
 
@@ -67,10 +69,56 @@ const FILENAME_PATTERNS: ReadonlyArray<{
     },
 ];
 
+// CI/Compose filenames that are always the same, wherever they live.
+// GitHub Actions and CircleCI aren't here because their filenames vary (any
+// *.yml under .github/workflows/, "config.yml" only under .circleci/) — see
+// detectCIOrComposeKind below, which checks their directory instead.
+const CI_COMPOSE_FILENAME_PATTERNS: ReadonlyArray<{
+    kind: "ci-config" | "compose";
+    pattern: RegExp;
+    }> = [
+    { kind: "ci-config", pattern: /^\.travis\.ya?ml$/ },
+    { kind: "ci-config", pattern: /^\.gitlab-ci\.ya?ml$/ },
+    { kind: "ci-config", pattern: /^azure-pipelines\.ya?ml$/ },
+    { kind: "compose", pattern: /^docker-compose(\..+)?\.ya?ml$/ },
+    { kind: "compose", pattern: /^compose\.ya?ml$/ },
+];
+
+function detectCIOrComposeKind(filePath: string): "ci-config" | "compose" | undefined {
+    const name = basename(filePath);
+
+    const matched = CI_COMPOSE_FILENAME_PATTERNS.find((p) => p.pattern.test(name));
+    if (matched) return matched.kind;
+
+    if (!/\.ya?ml$/i.test(name)) {
+        return undefined;
+    }
+
+    const segments = filePath.split(/[\\/]/);
+    // GitHub Actions and CircleCI only read their configs from a fixed
+    // location at the repository root, so this checks the first path
+    // segments specifically -- aligned with classifyFile.ts's
+    // isCIOrComposeFile, not just whether these names appear anywhere in
+    // the path.
+    // GitHub Actions: any .yml/.yaml file directly under .github/workflows/.
+    if (segments[0] === ".github" && segments[1] === "workflows") {
+        return "ci-config";
+    }
+    // CircleCI: .circleci/config.yml
+    if (segments[0] === ".circleci" && segments.length === 2 && /^config\.ya?ml$/i.test(name)) {
+        return "ci-config";
+    }
+
+    return undefined;
+}
+
 function detectConfigKind(input: ChunkInput): ConfigKind | undefined {
     const name = basename(input.filePath);
     const matched = FILENAME_PATTERNS.find((p) => p.pattern.test(name));
     if (matched) return matched.kind;
+
+    const ciOrCompose = detectCIOrComposeKind(input.filePath);
+    if (ciOrCompose) return ciOrCompose;
 
     if (input.filePurpose === "config") {
         return input.filePath.endsWith(".json") ? "generic-json" : "generic-code";
@@ -110,6 +158,10 @@ function configChunker(input: ChunkInput): Chunk[] {
             case "prettier-js":
             case "generic-code":
             return [chunkRawConfigText(input, labelFor(kind))];
+            case "ci-config":
+            return [chunkRawConfigText(input, "CI config", "ci_config")];
+            case "compose":
+            return [chunkRawConfigText(input, "docker compose config", "compose_config")];
         }
         } catch (err: any) {
         const errorMessage = err?.message || String(err);
@@ -248,13 +300,17 @@ function chunkGenericJsonConfig(input: ChunkInput, label: string): Chunk[] {
 
 //! ========== JS/TS-based configs ======
 
-function chunkRawConfigText(input: ChunkInput, label: string): Chunk {
+function chunkRawConfigText(
+    input: ChunkInput,
+    label: string,
+    chunkKind: Chunk["chunkKind"] = "tool_config",
+    ): Chunk {
     const truncated = input.content.length > MAX_RAW_TEXT_CHARS;
     const text = truncated
         ? input.content.slice(0, MAX_RAW_TEXT_CHARS) + "\n... (truncated)"
         : input.content;
 
-    return makeChunk(input, "tool_config", label, text);
+    return makeChunk(input, chunkKind, label, text);
 }
 
 //! ============ shared helpers ================

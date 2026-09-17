@@ -65,6 +65,52 @@ function isConfigFile(filePath: string): boolean {
     return CONFIG_FILENAME_PATTERNS.some((pattern) => pattern.test(filename));
 }
 
+// Filename patterns for CI configs and Docker Compose files that always use
+// the same name, wherever they live: Travis, GitLab CI, Azure Pipelines, and
+// Compose. GitHub Actions and CircleCI aren't here because their filenames
+// vary (any *.yml under .github/workflows/, "config.yml" only under
+// .circleci/) — those two need their directory checked too, see below.
+const CI_COMPOSE_FILENAME_PATTERNS: RegExp[] = [
+    /^\.travis\.ya?ml$/,
+    /^\.gitlab-ci\.ya?ml$/,
+    /^azure-pipelines\.ya?ml$/,
+    /^docker-compose(\..+)?\.ya?ml$/,
+    /^compose\.ya?ml$/,
+];
+
+// True for CI pipeline configs (GitHub Actions, CircleCI, Travis, GitLab CI,
+// Azure Pipelines) and Docker Compose files. These are worth classifying as
+// config even though they're YAML, not JSON: a CI workflow often documents
+// the actual build/test/run commands more reliably than prose docs do.
+function isCIOrComposeFile(filePath: string): boolean {
+    const filename = path.basename(filePath);
+    if (CI_COMPOSE_FILENAME_PATTERNS.some((pattern) => pattern.test(filename))) {
+        return true;
+    }
+
+    if (!/\.ya?ml$/i.test(filename)) {
+        return false;
+    }
+
+    const segments = filePath.split(path.sep);
+    // GitHub Actions and CircleCI only read their configs from a fixed
+    // location at the repository root, not anywhere else in the tree — so
+    // this checks the first two path segments specifically, not just
+    // whether ".github"/"workflows"/".circleci" appear anywhere in the
+    // path (which would also match e.g. a vendored copy of another repo,
+    // or a fixture directory that happens to reuse those names).
+    // GitHub Actions: any .yml/.yaml file directly under .github/workflows/.
+    if (segments[0] === ".github" && segments[1] === "workflows") {
+        return true;
+    }
+    // CircleCI: .circleci/config.yml
+    if (segments[0] === ".circleci" && segments.length === 2 && /^config\.ya?ml$/i.test(filename)) {
+        return true;
+    }
+
+    return false;
+}
+
 // True for *.d.ts files, filenames containing ".types.", or files
 // living inside a "types" directory.
 function isTypesFile(filePath: string): boolean {
@@ -99,7 +145,7 @@ function isDocsFile(filePath: string): boolean {
 // "unknown" for everything else.
 function detectPurpose(filePath: string, language: Language): FilePurpose {
     if (isTestFile(filePath)) return "test";
-    if (isConfigFile(filePath)) return "config";
+    if (isConfigFile(filePath) || isCIOrComposeFile(filePath)) return "config";
     if (isTypesFile(filePath)) return "types";
     if (isScriptsFile(filePath)) return "scripts";
     if (isDocsFile(filePath)) return "docs";

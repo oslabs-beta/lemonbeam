@@ -25,7 +25,7 @@ const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 // MVP: every scan is routed to this one fixed OpenAI model via OpenRouter —
 // no user-facing model choice yet (see DECISIONS.md > "User-Supplied
 // OpenRouter API Key (BYOK)").
-const MVP_MODEL = "openai/gpt-5";
+const MVP_MODEL = "openai/gpt-5.6-luna";
 
 // Post-MVP stretch goal, first sprint after the MVP (see PROJECT_BRIEF.md >
 // "Multiple LLM Provider Options"): a frontend dropdown will let the user

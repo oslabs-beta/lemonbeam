@@ -60,6 +60,54 @@ describe("scoreChunk", () => {
         expect(scores.testing).toBeGreaterThan(0);
     });
 
+    it("scores a CI config chunk positively for setup, running, and testing at once", () => {
+        const chunk = makeChunk({
+            filePath: ".github/workflows/ci.yml",
+            filePurpose: "config",
+            chunkKind: "ci_config",
+            chunkName: "CI config",
+        });
+
+        const scores = scoreChunk(chunk);
+
+        expect(scores.setup).toBeGreaterThan(0);
+        expect(scores.running).toBeGreaterThan(0);
+        expect(scores.testing).toBeGreaterThan(0);
+    });
+
+    it("scores a Compose config chunk positively for setup and running, but not testing", () => {
+        const chunk = makeChunk({
+            filePath: "docker-compose.yml",
+            filePurpose: "config",
+            chunkKind: "compose_config",
+            chunkName: "docker compose config",
+        });
+
+        const scores = scoreChunk(chunk);
+
+        expect(scores.setup).toBeGreaterThan(0);
+        expect(scores.running).toBeGreaterThan(0);
+        expect(scores.testing).toBe(0);
+    });
+
+    it("scores a source chunk under examples/ positively for running, unlike an equivalent chunk elsewhere", () => {
+        const exampleChunk = makeChunk({
+            filePath: "examples/hello-world/index.js",
+        });
+        const ordinarySourceChunk = makeChunk({
+            filePath: "src/example.ts",
+        });
+
+        const exampleScores = scoreChunk(exampleChunk);
+        const ordinaryScores = scoreChunk(ordinarySourceChunk);
+
+        expect(exampleScores.running).toBeGreaterThan(0);
+        expect(exampleScores.structure).toBeGreaterThan(0);
+
+        expect(ordinaryScores.running).toBe(0);
+        expect(ordinaryScores.structure).toBeGreaterThan(0);
+    });
+
     it("returns a defined score for every section, for every FilePurpose/chunkKind combination", () => {
         // Every value from chunk.ts's FilePurpose and ChunkKind unions,
         // kept in sync by hand since TypeScript can't enumerate a union
@@ -72,6 +120,7 @@ describe("scoreChunk", () => {
             "test_suite", "test_case", "test_hook",
             "markdown_section",
             "package_scripts", "dependencies", "compiler_options", "tool_config",
+            "ci_config", "compose_config",
             "text_block", "unknown",
         ];
         const sectionIds: GuideSectionId[] = ["overview", "setup", "running", "structure", "testing"];
