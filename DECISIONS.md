@@ -145,6 +145,14 @@ Downloading the actual repository snapshot does not use this token, or the REST 
 - `github/downloadSnapshot.ts` does not use this token.
 - This token must never be logged, committed, or exposed in an error response — same rule as the OpenRouter key, though this one is a shared server credential, not a per-request user-supplied one.
 
+### Addendum: MCP Server Mode
+
+The reasoning above assumes one LemonBeam-run server making every GitHub call, which is what makes a single shared token safe to use. The MCP server (see `ARCHITECTURE.md` > "MCP Server") is a different deployment shape: each person runs their own local instance, so the shared production token can't be reused there without shipping LemonBeam's real secret inside software running on someone else's machine — which would expose it to whoever installs it.
+
+- For the MCP server only, `GITHUB_TOKEN` is a per-user credential each person supplies for their own instance — never the shared token described above, and never the same value.
+- It is optional, not required, there: `github/validateRepository.ts`'s existing fallback to unauthenticated calls when the token is absent already covers this without any code change. Missing it only lowers that one person's own rate ceiling (60/hour instead of 5,000/hour); it never affects anyone else or the shared production token.
+- The shared server-side token described above, used by the web app, is unchanged by this — this addendum applies only to the MCP server's own separate process.
+
 ---
 
 ## Repository Size Limits for the MVP
@@ -671,6 +679,14 @@ For the MVP, the backend routes every request through OpenRouter to a single fix
 - The backend must never write the key to logs, SQLite, temporary files, or error responses.
 - A missing, malformed, or OpenRouter-rejected key returns a specific error so the frontend can prompt the user to fix it, rather than a generic external-service failure.
 - A server-side `OPENROUTER_API_KEY` environment variable may remain as a local-development fallback but must not be relied on for hosted/production usage.
+
+### Addendum: MCP Server Mode
+
+The reasoning above assumes a key supplied fresh with each HTTP request. The MCP server (see `ARCHITECTURE.md` > "MCP Server") is a second, deliberate mode: `OPENROUTER_API_KEY` is read once from the server process's own environment at startup, not passed with each tool call, and reused for every scan that process runs.
+
+- This is still BYOK in spirit, not a shared server-side key: each local MCP server instance is run by one person, using their own key, so "per process" and "per user" mean the same thing here — unlike a shared server-side key exhausted or abused by anonymous, multi-user traffic, which is what the "Reasons" above rule out.
+- The key is never passed as a tool argument. MCP tool arguments can appear in the calling client's own transcript/logs; reading it from the process environment instead keeps it out of that transcript, closer to the spirit of the masked-input, never-logged handling described above than a visible argument would be.
+- This supersedes the "local-development fallback" framing of the `OPENROUTER_API_KEY` environment variable in the Consequences above, for the MCP server specifically: there, reading it from the environment is the primary, intended mechanism, not a fallback.
 
 ---
 
