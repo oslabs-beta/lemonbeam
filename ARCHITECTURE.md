@@ -147,7 +147,7 @@ It:
 - reads `GITHUB_TOKEN` from its own process environment if present; if it is absent, GitHub API calls fall back to the unauthenticated 60-requests/hour limit instead of 5,000/hour, and the server prints a warning rather than failing.
 - is meant to be run as one local process per person, using that person's own credentials — the same BYOK model the web app uses (see `DECISIONS.md` > "User-Supplied OpenRouter API Key (BYOK)"), just supplied once via environment configuration instead of once per HTTP request. See `README.md` > "Using the MCP Server" for setup instructions.
 
-Both credentials are read from `process.env` once at server startup rather than supplied per request. This is a second, deliberate credential-sourcing mode alongside the per-request model described in "API Key Sourcing" below — not a replacement of it, and not yet reflected in `DECISIONS.md`'s BYOK or GitHub-token decisions, which still describe the web app's per-request model.
+Both credentials are read from `process.env` once at server startup rather than supplied per request. This is a second, deliberate credential-sourcing mode alongside the per-request model described in "API Key Sourcing" below; the MCP-specific credential model is documented in the addenda to the BYOK and GitHub-token decisions in `DECISIONS.md`.
 
 ### GitHub Integration
 
