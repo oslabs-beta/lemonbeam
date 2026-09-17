@@ -130,7 +130,24 @@ It:
 
 `routes/scans.ts` itself stays thin: it validates the request and calls `pipelineManager.ts`, then turns the result into the HTTP response. `pipelineManager.ts` is the file that actually sequences everything above — scan-ID/workspace creation, GitHub validation and download, repository analysis, guide generation, and cleanup — wrapped in a try/finally so cleanup always runs, even if an earlier step fails (see `DECISIONS.md` > "Thin Routes; `pipelineManager.ts` Sequences the Scan").
 
+`pipelineManager.ts` is not owned by the Express backend alone: the CLI (`cli/index.ts`) and the MCP server (`mcp/index.ts`, below) call the same `runScan()` function directly, without going through HTTP at all. Express, the CLI, and the MCP server are three thin callers of one shared pipeline.
+
 The OpenRouter API key is held in memory for the lifetime of the request only. It is never written to SQLite, logs, temporary files, or error responses.
+
+### MCP Server
+
+LemonBeam can also run as a local [MCP](https://modelcontextprotocol.io) (Model Context Protocol) server, giving any MCP-compatible client (Claude Desktop, Claude Code, or any other MCP client) a way to call the scan/guide-generation pipeline directly as a tool, instead of going through the web UI.
+
+`mcp/index.ts` is the entry point. Like the CLI, it is a thin wrapper: it implements no scan logic itself, it only calls `pipelineManager.ts`'s `runScan()`.
+
+It:
+
+- exposes exactly one tool, `generate_onboarding_guide`, taking a single argument: a public GitHub repository URL. Unlike the CLI, it does not accept local file paths.
+- requires `OPENROUTER_API_KEY` to be set in its own process environment at startup, not passed per tool call; the server refuses to start without it.
+- reads `GITHUB_TOKEN` from its own process environment if present; if it is absent, GitHub API calls fall back to the unauthenticated 60-requests/hour limit instead of 5,000/hour, and the server prints a warning rather than failing.
+- is meant to be run as one local process per person, using that person's own credentials — the same BYOK model the web app uses (see `DECISIONS.md` > "User-Supplied OpenRouter API Key (BYOK)"), just supplied once via environment configuration instead of once per HTTP request. See `README.md` > "Using the MCP Server" for setup instructions.
+
+Both credentials are read from `process.env` once at server startup rather than supplied per request. This is a second, deliberate credential-sourcing mode alongside the per-request model described in "API Key Sourcing" below; the MCP-specific credential model is documented in the addenda to the BYOK and GitHub-token decisions in `DECISIONS.md`.
 
 ### GitHub Integration
 

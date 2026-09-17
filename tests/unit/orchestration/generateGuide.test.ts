@@ -126,4 +126,24 @@ describe("generateGuide", () => {
       "- `vendor/generated-icons.ts` — excluded from evidence selection (irrelevant or over budget)",
     );
   });
+
+  it("falls back to a line range, not a bare repeated file path, for unnamed excluded chunks that carry one", async () => {
+    // fallbackChunker.ts never sets chunkName, but always sets
+    // startLine/endLine - this is what its excluded chunks actually look
+    // like in practice (e.g. an unclassified file like .editorconfig).
+    const excludedChunk = makeChunk({
+      filePath: ".editorconfig",
+      filePurpose: "unknown",
+      chunkKind: "unknown",
+      chunkName: undefined,
+      startLine: 3,
+      endLine: 7,
+    });
+
+    const result = await generateGuide([makeChunk(), excludedChunk], [], "test-api-key");
+
+    expect(result.markdown).toContain(
+      "- `.editorconfig:3-7` — excluded from evidence selection (irrelevant or over budget)",
+    );
+  });
 });

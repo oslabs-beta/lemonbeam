@@ -84,7 +84,7 @@ async function runScan(input: RunScanInput): Promise<RunScanResult> {
       }
 
       const folderName = path.basename(resolvedPath);
-      console.log(`📂 Scanning local directory: ${resolvedPath}`);
+      console.error(`📂 Scanning local directory: ${resolvedPath}`);
 
       repository = {
         owner: "local",
@@ -99,7 +99,7 @@ async function runScan(input: RunScanInput): Promise<RunScanResult> {
       // Only create the temp workspace if it's a remote GitHub repository
       workspace = await createTempDirectory(scanId);
 
-      console.log(`🌐 Fetching remote repository: ${input.repositoryUrl}`);
+      console.error(`🌐 Fetching remote repository: ${input.repositoryUrl}`);
       repository = await validateRepository(input.repositoryUrl);
 
       repositoryDirectory = await downloadSnapshot({

@@ -16,6 +16,7 @@
     "backend/src/**/*.ts",
     "frontend/src/**/*.ts",
     "cli/**/*.ts",
+    "mcp/**/*.ts",
     "vitest.config.ts"
   ]
 }
