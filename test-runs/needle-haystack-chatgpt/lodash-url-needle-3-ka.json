@@ -1,0 +1,29 @@
+{
+  "tester": "ka",
+  "target": "ChatGPT (web, Temporary Chat, memory off)",
+  "model": "not disclosed in ChatGPT web UI",
+  "method": "given the live GitHub repo URL directly (https://github.com/lodash/lodash); no file upload or paste",
+  "needle": {
+    "label": 3,
+    "depth": "deep/buried",
+    "expectedFact": "bookmarkletVersion = 4",
+    "sourceFileInRepo": "vendor/firebug-lite/src/firebug-lite-debug.js",
+    "sourceLineInRepo": 34
+  },
+  "messages": {
+    "message1": "Here's a GitHub repository: https://github.com/lodash/lodash — I'm going to ask you some questions about specific details in it afterward.",
+    "message2": "What is `bookmarkletVersion` set to, and which file is it in?",
+    "message3_citationFollowUp": "Which specific file did you check to find that, and can you quote the exact surrounding lines or link the file?"
+  },
+  "rawResponseOriginal": null,
+  "rawResponseCitationFollowUp": "The specific file I was referring to is:\n`vendor/firebug-lite/build/firebug-lite-debug.js`\nThe relevant lines are:\n\n```\nvar productionDir = \"http://getfirebug.com/releases/lite/\";\nvar bookmarkletVersion = 4;\n\n// ************************************************************************************************\n\nvar reNotWhitespace = /[^\\s]/;\nvar reSplitFile = /:\\/{1,3}(.*?)\\/([^\\/]*?)\\/?($|\\?.*)/;\n```\n\nI also verified the surrounding source: `bookmarkletVersion` is used later when checking whether a Firebug Lite bookmarklet is outdated.\nOne caveat: the current GitHub `main` URL for that exact path returned 404 in my check, so I don't want to pretend I verified it against the current branch. The source excerpt above is from the Firebug Lite file matching that path/content.",
+  "verdict": "correct value and exact verbatim content, but incorrect citation",
+  "citationVerification": {
+    "claimedPath": "vendor/firebug-lite/build/firebug-lite-debug.js",
+    "realPath": "vendor/firebug-lite/src/firebug-lite-debug.js",
+    "pathCorrect": false,
+    "contentVerbatimMatch": true,
+    "verificationDetail": "Checked the claimed path against the real repo: no `build/` directory exists anywhere under vendor/firebug-lite -- only `src/`. The quoted excerpt, however, is a byte-for-byte exact match to the real file at vendor/firebug-lite/src/firebug-lite-debug.js, lines 33-39, including exact comment-separator formatting and the two trailing regex lines."
+  },
+  "note": "The strongest and most interesting result of the three URL-based needles. Getting the value AND the surrounding text exactly right while getting the file path wrong (and self-reporting a 404 when it tried to verify that wrong path) is a distinctive signature: if this had come from a fresh live fetch of lodash's actual tree, the path would be right by construction. Byte-perfect content with a wrong, nonexistent path instead points toward memorized training knowledge of this specific file -- Firebug Lite's source is old and has been mirrored/copied across many repos and blog posts since ~2007-2012 -- rather than genuine live retrieval from this URL just now. Also notable: the model self-caught its own verification failure and disclosed it rather than asserting false confidence."
+}

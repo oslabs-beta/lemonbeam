@@ -1,0 +1,51 @@
+{
+  "tester": "ka",
+  "target": "ChatGPT (web, Temporary Chat, memory off)",
+  "model": "not disclosed in ChatGPT web UI",
+  "method": "given the live GitHub repo URL directly (https://github.com/lodash/lodash); no file upload or paste",
+  "needle": {
+    "label": 5,
+    "depth": "harder round: nested vendored test fixture",
+    "designCaveat": "The question ('What route fixture string is used in vendor/backbone/test/router.js?') was underspecified -- that file contains 60+ location.replace(...) fixture strings, so there were many valid true answers, not just the one we'd planned (the line-414 'has%2Fslash/complex-has%23hash/has%20space' fixture). ChatGPT answered with a different, real, easier-to-find fixture near the top of the file instead of the deeper one we intended. This tests real retrieval accuracy, but is a milder depth test than needles 4/6.",
+    "expectedFactAsAsked": "'http://example.com#search/news', inside the 'routes (simple)' QUnit test",
+    "originallyIntendedFact": "'has%2Fslash/complex-has%23hash/has%20space' at line 414 (not what was actually probed)",
+    "sourceFileInRepo": "vendor/backbone/test/router.js",
+    "sourceLineInRepo": "193-201 ('routes (simple)' test block)"
+  },
+  "messages": {
+    "message1": "Here's a GitHub repository: https://github.com/lodash/lodash — I'm going to ask you some questions about specific details in it afterward.",
+    "message2": "What route fixture string is used in `vendor/backbone/test/router.js`?",
+    "message3_citationFollowUp": "Which specific file did you check to find that, and can you quote the exact surrounding lines or link the file?"
+  },
+  "rawResponseOriginal": "The route fixture string used in vendor/backbone/test/router.js is:\n\nhttp://example.com#search/news\n\nIt appears in the “routes (simple)” test, where the fixture is passed to location.replace().\n\nView the router.js file on GitHub",
+  "rawResponseCitationFollowUp": "Yes. I checked this specific file in the Lodash repository:\n`vendor/backbone/test/router.js` on GitHub\nThe relevant lines are 184–192:\n\n```\nQUnit.test('routes (simple)', function(assert) {\n  assert.expect(4);\n  location.replace('http://example.com#search/news');\n  Backbone.history.checkUrl();\n  assert.equal(router.query, 'news');\n  assert.equal(router.page, void 0);\n  assert.equal(lastRoute, 'search');\n  assert.equal(lastArgs[0], 'news');\n});\n```\n\nSo the exact route fixture string is `http://example.com#search/news`.",
+  "verdict": "correct value, correct path, near-perfect verbatim quote, but offset line numbers",
+  "citationVerification": {
+    "claimedPath": "vendor/backbone/test/router.js",
+    "realPath": "vendor/backbone/test/router.js",
+    "pathCorrect": true,
+    "claimedLineRange": "184-192",
+    "realLineRange": "193-201",
+    "lineRangeCorrect": false,
+    "lineRangeOffset": "exactly -9 lines (span length correct at 9 lines, anchor point wrong)",
+    "quotedTextVerbatimMatch": true,
+    "verificationDetail": "Checked lines 193-201 of the real file: every line matches word-for-word -- test name, assert.expect(4), the location.replace call, and all four assert.equal lines. This is the cleanest verbatim match of the whole test set. The only error is the line range, claimed as 184-192 instead of the real 193-201 -- a consistent 9-line-early offset, not a random or impossible number (unlike needle 4's '343-389' in a 61-line file). The correct span length (9 lines) alongside a wrong anchor suggests it may have been counting from a different reference point (e.g. a partial snippet view) rather than fabricating the range outright."
+  },
+  "note": "Best raw-content fidelity in the test set so far -- a full 9-line block quoted perfectly. But this needle didn't end up testing what we designed it to test: the question was open enough that ChatGPT found a different, real, shallower fixture than the deep one we'd planned (line 414), so this measures general retrieval accuracy on an easy target rather than depth specifically. Still useful: even on an easy, perfectly-quoted target, the line-number citation was still wrong, just in a more structured way (consistent offset) than needle 4's impossible range.",
+  "deepFollowUp": {
+    "message4": "There's another route fixture further into that same file, around line 400-420, involving a URL-encoded slash, hash, and space all together. What is it?",
+    "rawResponse": "The specific file is `vendor/backbone/test/router.js`. The fixture is:\n\n```\nvar route = 'has%2Fslash/complex-has%23hash/has%20space';\nBackbone.history.navigate(route, {trigger: true});\n```\n\nIt’s in the `#967 - Route callback gets passed encoded values.` test, at lines 381–387. The encoded pieces are `%2F` (slash), `%23` (hash), and `%20` (space).\nView the exact router.js file",
+    "verdict": "correct value, correct path, perfect verbatim quote including a highly specific detail (GitHub issue number #967), but still-wrong line numbers",
+    "citationVerification": {
+      "claimedLineRange": "381-387",
+      "realLineRange": "412-419 (full test block); 414-415 (the two quoted lines)",
+      "realFileLength": 1081,
+      "lineRangeCorrect": false,
+      "lineRangeInBounds": true,
+      "quotedTextVerbatimMatch": true,
+      "testNameVerbatimMatch": true,
+      "verificationDetail": "This is the intended hard needle from the original test design (the line-414 URL-encoded fixture), successfully located once the question was made specific enough. Both quoted lines match the real file exactly, and the test name/issue number ('#967 - Route callback gets passed encoded values.') is an exact match -- a specific issue number is about as hard to guess coincidentally as a fact gets, which is strong evidence this content is genuinely real and specifically located, not generic pattern-completion. The claimed line range (381-387) is wrong by roughly 27-31 lines from the real location, though at least plausible/in-bounds for a 1,081-line file (unlike needle 4's impossible range)."
+    },
+    "note": "The single strongest piece of evidence in the whole test set that ChatGPT can genuinely retrieve specific, deeply-buried, highly-idiosyncratic content when the question is precise enough to force it there -- and simultaneously the clearest confirmation that its line-number citations cannot be trusted even when the content and test-name citation are both perfect. Content accuracy and citation-metadata accuracy appear to be fully decoupled."
+  }
+}

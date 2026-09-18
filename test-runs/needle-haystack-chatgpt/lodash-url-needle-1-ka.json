@@ -1,0 +1,26 @@
+{
+  "tester": "ka",
+  "target": "ChatGPT (web, Temporary Chat, memory off)",
+  "model": "not disclosed in ChatGPT web UI",
+  "method": "given the live GitHub repo URL directly (https://github.com/lodash/lodash); no file upload or paste",
+  "needle": {
+    "label": 1,
+    "depth": "shallow (root-level)",
+    "expectedFact": "package.json \"version\" is \"4.18.1\"",
+    "sourceFileInRepo": "package.json",
+    "sourceLineInRepo": 3,
+    "significance": "4.18.1 only exists as an unreleased version bump in the live repo -- npm has been pinned at 4.17.21 for years, so this is not the 'obvious' memorized answer a model reciting well-known lodash trivia would give."
+  },
+  "messages": {
+    "message1": "Here's a GitHub repository: https://github.com/lodash/lodash — I'm going to ask you some questions about specific details in it afterward.",
+    "message2": "What version is declared in this repo's `package.json`?"
+  },
+  "rawResponse": "The `package.json` declares version `4.18.1`:\n\n```\n\"version\": \"4.18.1\"\n```",
+  "verdict": "correct",
+  "citationFollowUp": {
+    "requested": true,
+    "collected": false,
+    "note": "A citation follow-up ('which file/URL, quote the surrounding lines') was requested in this same chat, but the response hasn't been captured/logged yet."
+  },
+  "note": "Correct value, verbatim response captured. Since 4.18.1 only exists as an unreleased bump in the live repo, this argues somewhat against pure memorization -- though without a completed citation follow-up we can't yet confirm it came from a live fetch rather than some other source."
+}
