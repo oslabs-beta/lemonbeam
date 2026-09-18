@@ -1,4 +1,4 @@
-import { useState, type SyntheticEvent } from "react";
+import { useState, useEffect, type SyntheticEvent } from "react";
 import Navbar from "./components/Navbar";
 import LemonBeamLogo from "./components/LemonBeamLogo";
 import ScanResults from "./components/ScanResults";
@@ -12,6 +12,32 @@ function App() {
     scanId: string;
     guide: { markdown: string };
   } | null>(null);
+
+  // Active tab state for the interactive tab switcher ("overview" | "cli" | "mcp")
+  const [activeTab, setActiveTab] = useState<"overview" | "cli" | "mcp">(
+    "overview",
+  );
+
+  // Sync tab selection with Navbar anchor hashes (#overview, #cli, #mcp)
+  useEffect(() => {
+    function handleHashChange() {
+      const hash = window.location.hash;
+      if (hash === "#overview") {
+        setActiveTab("overview");
+      } else if (hash === "#cli") {
+        setActiveTab("cli");
+      } else if (hash === "#mcp") {
+        setActiveTab("mcp");
+      }
+    }
+
+    // Check hash on initial load
+    handleHashChange();
+
+    // Listen for subsequent navbar clicks
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
 
   // NOTE: BYOK uses an OpenRouter API key, not an OpenAI key directly — see
   // DECISIONS.md > "User-Supplied OpenRouter API Key (BYOK)".
@@ -77,9 +103,12 @@ function App() {
     <div className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100 selection:bg-[var(--color-yellow)] selection:text-black">
       <Navbar />
 
-      <main className="flex-1 flex flex-col items-center w-full">
+      <main className="flex-1 flex flex-col items-center w-full pb-24">
         {/* Hero Section */}
-        <section className="mx-auto max-w-7xl px-6 py-24 flex flex-col items-center text-center w-full">
+        <section
+          id="home"
+          className="mx-auto max-w-7xl px-6 pt-16 pb-12 flex flex-col items-center text-center w-full scroll-mt-20"
+        >
           <div className="logo-container">
             <LemonBeamLogo />
           </div>
@@ -184,90 +213,214 @@ function App() {
 
           {/* Display Scan Results Component when data is returned */}
           {scanResult && scanResult.guide && (
-            <ScanResults guideMarkdown={scanResult.guide.markdown} />
+            <div className="w-full max-w-5xl mt-8">
+              <ScanResults guideMarkdown={scanResult.guide.markdown} />
+            </div>
           )}
         </section>
 
-        {/* How to Use / Instructions Section */}
-        <section
-          id="how-it-works"
-          className="w-full max-w-5xl px-6 py-20 border-t border-white/10"
-        >
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold tracking-tight text-white mb-3">
-              How to Use LemonBeam
-            </h2>
-            <p className="text-zinc-400 text-sm">
-              Run your code analysis via the CLI tool or connect via the MCP
-              server.
-            </p>
+        {/* Interactive Tab Switcher Navigation */}
+        <div className="w-full max-w-5xl px-6 mt-4 mb-6">
+          <div className="flex justify-center border-b border-white/10 pb-4 gap-2 md:gap-4">
+            <button
+              onClick={() => {
+                setActiveTab("overview");
+                window.location.hash = "overview";
+              }}
+              className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                activeTab === "overview"
+                  ? "bg-[var(--color-yellow)] text-black font-semibold shadow-md"
+                  : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10"
+              }`}
+            >
+              Overview
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab("cli");
+                window.location.hash = "cli";
+              }}
+              className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                activeTab === "cli"
+                  ? "bg-[var(--color-yellow)] text-black font-semibold shadow-md"
+                  : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10"
+              }`}
+            >
+              CLI Guide
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab("mcp");
+                window.location.hash = "mcp";
+              }}
+              className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                activeTab === "mcp"
+                  ? "bg-[var(--color-yellow)] text-black font-semibold shadow-md"
+                  : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10"
+              }`}
+            >
+              MCP Setup
+            </button>
           </div>
+        </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* CLI Usage Card (Your Feature) */}
-            <div className="bg-zinc-900/50 border border-white/10 rounded-xl p-6 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-[var(--color-yellow)] text-lg">💻</span>
-                  <h3 className="font-semibold text-lg text-white">CLI Tool</h3>
-                </div>
-                <p className="text-zinc-400 text-sm mb-4">
-                  Install globally and initialize your repository guide directly
-                  from your terminal.
-                </p>
-
-                <div className="bg-black/60 border border-white/10 rounded-lg p-4 font-mono text-xs text-[var(--color-yellow)] overflow-x-auto mb-4 space-y-1">
-                  <p>npm install -g lemonbeam</p>
-                  <p className="text-zinc-400">
-                    lemonbeam init --path ./my-project
+        {/* Tab Content Display */}
+        <div className="w-full max-w-5xl px-6">
+          {/* 1. Overview Tab */}
+          {activeTab === "overview" && (
+            <div
+              id="overview"
+              className="bg-zinc-900/30 border border-white/10 rounded-2xl p-8 md:p-12 animate-fadeIn scroll-mt-32"
+            >
+              <div className="grid md:grid-cols-2 gap-10 items-start">
+                <div className="space-y-4">
+                  <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                    <span>LemonBeam</span>{" "}
+                    <span className="text-[var(--color-yellow)]">🍋</span>
+                  </h2>
+                  <p className="text-zinc-300 text-sm leading-relaxed">
+                    LemonBeam shines a fresh beam of light on an unfamiliar
+                    codebase. It scans a public JavaScript or TypeScript GitHub
+                    repository and generates a fixed-format contributor guide
+                    that helps new developers understand the project more
+                    quickly.
+                  </p>
+                  <p className="text-zinc-400 text-sm leading-relaxed">
+                    Rather than sending an entire repository directly to an LLM,
+                    LemonBeam classifies repository files, creates meaningful
+                    chunks, retrieves only the evidence relevant to each guide
+                    section, and generates a source-backed guide with citations.
                   </p>
                 </div>
-              </div>
 
-              <button
-                onClick={() =>
-                  navigator.clipboard.writeText(
-                    "npm install -g lemonbeam\nlemonbeam init --path ./my-project",
-                  )
-                }
-                className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-xs font-medium rounded-lg transition text-zinc-200 border border-white/10 flex items-center justify-center gap-2"
-              >
-                Copy CLI Commands
-              </button>
-            </div>
-
-            {/* MCP Server Integration Card (Classmate's Feature) */}
-            <div className="bg-zinc-900/50 border border-white/10 rounded-xl p-6 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-[var(--color-yellow)] text-lg">🔌</span>
-                  <h3 className="font-semibold text-lg text-white">
-                    MCP Server Integration
+                <div className="bg-zinc-900/60 border border-white/10 rounded-xl p-6 space-y-4">
+                  <h3 className="text-lg font-semibold text-white">
+                    Why LemonBeam?
                   </h3>
-                </div>
-                <p className="text-zinc-400 text-sm mb-4">
-                  Configure your AI coding assistant (like Claude Desktop or
-                  Cursor) to use LemonBeam.
-                </p>
-
-                <div className="bg-black/60 border border-white/10 rounded-lg p-4 font-mono text-xs text-[var(--color-yellow)] overflow-x-auto mb-4">
-                  <pre>{`{\n  "mcpServers": {\n    "lemonbeam": {\n      "command": "npx",\n      "args": ["-y", "lemonbeam-mcp-server"]\n    }\n  }\n}`}</pre>
+                  <p className="text-zinc-400 text-sm">
+                    Understanding an unfamiliar repository is difficult.
+                    Important information is often scattered across READMEs,
+                    scripts, configuration files, and source code.
+                  </p>
+                  <div className="space-y-2 text-sm text-zinc-300">
+                    <p className="text-xs font-mono uppercase tracking-wider text-[var(--color-yellow)] mb-2">
+                      The Deterministic Approach:
+                    </p>
+                    <ul className="space-y-1.5 list-disc list-inside text-zinc-400">
+                      <li>Scanning and classifying the repository structure</li>
+                      <li>Organizing targeted repository evidence</li>
+                      <li>
+                        Retrieving only information relevant to each section
+                      </li>
+                      <li>
+                        Generating a repeatable, source-backed contributor guide
+                      </li>
+                    </ul>
+                  </div>
                 </div>
               </div>
-
-              <button
-                onClick={() =>
-                  navigator.clipboard.writeText(
-                    '{\n  "mcpServers": {\n    "lemonbeam": {\n      "command": "npx",\n      "args": ["-y", "lemonbeam-mcp-server"]\n    }\n  }\n}',
-                  )
-                }
-                className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-xs font-medium rounded-lg transition text-zinc-200 border border-white/10 flex items-center justify-center gap-2"
-              >
-                Copy MCP Config
-              </button>
             </div>
-          </div>
-        </section>
+          )}
+
+          {/* 2. CLI Guide Tab */}
+          {activeTab === "cli" && (
+            <div
+              id="cli"
+              className="bg-zinc-900/30 border border-white/10 rounded-2xl p-8 md:p-12 animate-fadeIn scroll-mt-32"
+            >
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold tracking-tight text-white mb-2">
+                  CLI Tool Usage
+                </h2>
+                <p className="text-zinc-400 text-sm">
+                  Run your code analysis interactively in any project directory.
+                </p>
+              </div>
+
+              <div className="max-w-2xl mx-auto bg-zinc-900/50 border border-white/10 rounded-xl p-6 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-[var(--color-yellow)] text-lg">
+                      💻
+                    </span>
+                    <h3 className="font-semibold text-lg text-white">
+                      CLI Quick Start
+                    </h3>
+                  </div>
+                  <p className="text-zinc-400 text-sm mb-4">
+                    Configure your .env file with your credentials, link the
+                    package locally, and execute the command.
+                  </p>
+                  <div className="bg-black/60 border border-white/10 rounded-lg p-4 font-mono text-xs text-[var(--color-yellow)] overflow-x-auto mb-4 space-y-1">
+                    <p className="text-zinc-500">
+                      # 1. Add OPENROUTER_API_KEY to .env
+                    </p>
+                    <p>npm link lemonbeam</p>
+                    <p className="text-zinc-400">npx lemonbeam</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() =>
+                    navigator.clipboard.writeText(
+                      "npm link lemonbeam\nnpx lemonbeam",
+                    )
+                  }
+                  className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-xs font-medium rounded-lg transition text-zinc-200 border border-white/10 flex items-center justify-center gap-2"
+                >
+                  Copy CLI Commands
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 3. MCP Setup Tab */}
+          {activeTab === "mcp" && (
+            <div
+              id="mcp"
+              className="bg-zinc-900/30 border border-white/10 rounded-2xl p-8 md:p-12 animate-fadeIn scroll-mt-32"
+            >
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold tracking-tight text-white mb-2">
+                  MCP Server Integration
+                </h2>
+                <p className="text-zinc-400 text-sm">
+                  Connect LemonBeam directly to your local AI assistant
+                  workspace.
+                </p>
+              </div>
+
+              <div className="max-w-2xl mx-auto bg-zinc-900/50 border border-white/10 rounded-xl p-6 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-[var(--color-yellow)] text-lg">
+                      🔌
+                    </span>
+                    <h3 className="font-semibold text-lg text-white">
+                      Configuration Setup
+                    </h3>
+                  </div>
+                  <p className="text-zinc-400 text-sm mb-4">
+                    Configure your AI coding assistant (like Claude Desktop) to
+                    run LemonBeam locally via Model Context Protocol.
+                  </p>
+                  <div className="bg-black/60 border border-white/10 rounded-lg p-4 font-mono text-xs text-[var(--color-yellow)] overflow-x-auto mb-4">
+                    <pre>{`{\n  "mcpServers": {\n    "lemonbeam": {\n      "command": "node",\n      "args": ["/absolute/path/to/lemonbeam/dist/mcp/index.js"],\n      "env": {\n        "OPENROUTER_API_KEY": "your_key_here",\n        "GITHUB_TOKEN": "your_token_here"\n      }\n    }\n  }\n}`}</pre>
+                  </div>
+                </div>
+                <button
+                  onClick={() =>
+                    navigator.clipboard.writeText(
+                      '{\n  "mcpServers": {\n    "lemonbeam": {\n      "command": "node",\n      "args": ["/absolute/path/to/lemonbeam/dist/mcp/index.js"],\n      "env": {\n        "OPENROUTER_API_KEY": "your_key_here",\n        "GITHUB_TOKEN": "your_token_here"\n      }\n    }\n  }\n}',
+                    )
+                  }
+                  className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-xs font-medium rounded-lg transition text-zinc-200 border border-white/10 flex items-center justify-center gap-2"
+                >
+                  Copy MCP Config
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );
