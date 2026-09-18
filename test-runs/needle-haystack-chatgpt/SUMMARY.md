@@ -16,6 +16,6 @@
 
 ## Bottom line
 
-ChatGPT getting an answer *right* doesn't mean it's *trustworthy* — the correctness of the content and the correctness of the citation are two separate things, and the citation failed every time we checked it closely. That's what it means for it to be a black box: it hands you an answer, not the work behind it. This is the exact gap LemonBeam closes — every claim in a generated guide is tied to a real, verified excerpt, not a plausible-sounding guess with an unreliable source attached.
+ChatGPT getting an answer *right* doesn't mean it's *trustworthy* — the correctness of the content and the correctness of the citation are two separate things, and the citation failed every time we checked it closely. That's what it means for it to be a black box: it hands you an answer, not the work behind it. LemonBeam is intended to close this gap by generating guides from repository evidence and requiring source citations; whether each citation is verified is a separate implementation concern.
 
 All raw prompts, responses, and verification notes are in this folder (`test-runs/needle-haystack-chatgpt/`) for anyone who wants to check the checking.
