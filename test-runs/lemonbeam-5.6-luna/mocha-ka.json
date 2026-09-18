@@ -7,6 +7,7 @@
   "wallClockSeconds": 19.7,
   "timeToFirstTokenSeconds": 3.57,
   "repoSize": "32,888 KB (GitHub-reported, includes full commit history -- working-tree content excluding .git is roughly 3,166 KB)",
+  "note": "Citations were not independently hand-verified against the real repo for this run.",
   "response": {
     "scanId": "scan_4d7c4358-3b91-432a-b330-1e6e3cbdd384",
     "repository": {
