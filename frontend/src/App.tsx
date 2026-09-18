@@ -1,4 +1,4 @@
-import { useState, useEffect, type SyntheticEvent } from "react";
+import { useState, type SyntheticEvent } from "react";
 import Navbar from "./components/Navbar";
 import LemonBeamLogo from "./components/LemonBeamLogo";
 import ScanResults from "./components/ScanResults";
@@ -17,27 +17,6 @@ function App() {
   const [activeTab, setActiveTab] = useState<"overview" | "cli" | "mcp">(
     "overview",
   );
-
-  // Sync tab selection with Navbar anchor hashes (#overview, #cli, #mcp)
-  useEffect(() => {
-    function handleHashChange() {
-      const hash = window.location.hash;
-      if (hash === "#overview") {
-        setActiveTab("overview");
-      } else if (hash === "#cli") {
-        setActiveTab("cli");
-      } else if (hash === "#mcp") {
-        setActiveTab("mcp");
-      }
-    }
-
-    // Check hash on initial load
-    handleHashChange();
-
-    // Listen for subsequent navbar clicks
-    window.addEventListener("hashchange", handleHashChange);
-    return () => window.removeEventListener("hashchange", handleHashChange);
-  }, []);
 
   // NOTE: BYOK uses an OpenRouter API key, not an OpenAI key directly — see
   // DECISIONS.md > "User-Supplied OpenRouter API Key (BYOK)".
@@ -101,7 +80,13 @@ function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100 selection:bg-[var(--color-yellow)] selection:text-black">
-      <Navbar />
+      <Navbar
+        activeTab={activeTab}
+        onTabChange={(tab) => {
+          setActiveTab(tab);
+          document.getElementById(tab)?.scrollIntoView({ behavior: "smooth" });
+        }}
+      />
 
       <main className="flex-1 flex flex-col items-center w-full pb-24">
         {/* Hero Section */}
@@ -225,7 +210,9 @@ function App() {
             <button
               onClick={() => {
                 setActiveTab("overview");
-                window.location.hash = "overview";
+                document
+                  .getElementById("overview")
+                  ?.scrollIntoView({ behavior: "smooth" });
               }}
               className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 activeTab === "overview"
@@ -238,7 +225,9 @@ function App() {
             <button
               onClick={() => {
                 setActiveTab("cli");
-                window.location.hash = "cli";
+                document
+                  .getElementById("cli")
+                  ?.scrollIntoView({ behavior: "smooth" });
               }}
               className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 activeTab === "cli"
@@ -251,7 +240,9 @@ function App() {
             <button
               onClick={() => {
                 setActiveTab("mcp");
-                window.location.hash = "mcp";
+                document
+                  .getElementById("mcp")
+                  ?.scrollIntoView({ behavior: "smooth" });
               }}
               className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 activeTab === "mcp"
@@ -420,6 +411,16 @@ function App() {
               </div>
             </div>
           )}
+
+          {/* Back to Top Button Directly Underneath the Box */}
+          <div className="flex justify-center mt-8">
+            <button
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+              className="px-4 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-zinc-300 text-xs font-medium transition"
+            >
+              Back to Top ↑
+            </button>
+          </div>
         </div>
       </main>
     </div>

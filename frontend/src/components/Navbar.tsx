@@ -1,39 +1,48 @@
-// import { Link } from "react-router-dom";
+interface NavbarProps {
+  activeTab: "overview" | "cli" | "mcp";
+  onTabChange: (tab: "overview" | "cli" | "mcp") => void;
+}
 
-function Navbar() {
+function Navbar({ activeTab, onTabChange }: NavbarProps) {
   return (
     <header className="w-full border-b border-white/10 px-6 py-4 flex items-center justify-between max-w-7xl mx-auto">
-      <a
-        href="#home"
-        className="flex items-center gap-2 font-semibold text-lg text-white"
+      <button
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        className="flex items-center gap-2 font-semibold text-lg text-white hover:opacity-80 transition-opacity"
       >
         Lemon<span className="text-[var(--color-yellow)]">Beam</span>
-      </a>
+      </button>
       <nav className="flex items-center gap-6 text-sm font-medium text-zinc-400">
-        <a
-          href="#home"
-          className="hover:text-[var(--color-yellow)] transition-colors"
-        >
-          Home
-        </a>
-        <a
-          href="#overview"
-          className="hover:text-[var(--color-yellow)] transition-colors"
+        <button
+          onClick={() => onTabChange("overview")}
+          className={`transition-colors text-left ${
+            activeTab === "overview"
+              ? "text-[var(--color-yellow)] font-semibold"
+              : "hover:text-[var(--color-yellow)]"
+          }`}
         >
           Overview
-        </a>
-        <a
-          href="#cli"
-          className="hover:text-[var(--color-yellow)] transition-colors"
+        </button>
+        <button
+          onClick={() => onTabChange("cli")}
+          className={`transition-colors text-left ${
+            activeTab === "cli"
+              ? "text-[var(--color-yellow)] font-semibold"
+              : "hover:text-[var(--color-yellow)]"
+          }`}
         >
           CLI Guide
-        </a>
-        <a
-          href="#mcp"
-          className="hover:text-[var(--color-yellow)] transition-colors"
+        </button>
+        <button
+          onClick={() => onTabChange("mcp")}
+          className={`transition-colors text-left ${
+            activeTab === "mcp"
+              ? "text-[var(--color-yellow)] font-semibold"
+              : "hover:text-[var(--color-yellow)]"
+          }`}
         >
           MCP Setup
-        </a>
+        </button>
       </nav>
     </header>
   );
