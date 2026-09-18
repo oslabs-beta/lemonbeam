@@ -30,6 +30,27 @@ type GuideResult = {
     markdown: string;
 }
 
+// Distinguishes chunks from the same file in the Uncertainties list below.
+// Named chunks (from configChunker.ts, treeSitterChunker.ts, etc.) get their
+// name. fallbackChunker.ts's text_block chunks never set chunkName, so
+// without this, every excluded chunk from an unclassified file (e.g.
+// .editorconfig, .github/ISSUE_TEMPLATE/*.yml) would render as the same
+// bare file path -- falling back to the line range instead, which
+// fallbackChunker.ts's chunks always carry, keeps them distinguishable.
+function describeChunkPosition(chunk: Chunk): string {
+  if (chunk.chunkName) {
+    return ` (${chunk.chunkName})`;
+  }
+
+  if (chunk.startLine !== undefined && chunk.endLine !== undefined) {
+    return chunk.startLine === chunk.endLine
+      ? `:${chunk.startLine}`
+      : `:${chunk.startLine}-${chunk.endLine}`;
+  }
+
+  return "";
+}
+
 // Builds the sixth section directly from skippedFiles and budget-excluded
 // chunks, rather than summarizing either via another LLM call — both are
 // already fully known, so generating this programmatically is cheaper and
@@ -57,7 +78,7 @@ function buildUncertaintiesSection(skippedFiles: SkippedFile[], excludedChunks: 
     const shown = excludedChunks.slice(0, MAX_EXCLUDED_SHOWN);
     const remaining = excludedChunks.length - shown.length;
     const excludedLines = shown.map((chunk) => {
-      const label = chunk.chunkName ? `${chunk.filePath} (${chunk.chunkName})` : chunk.filePath;
+      const label = `${chunk.filePath}${describeChunkPosition(chunk)}`;
       return `- \`${label}\` — excluded from evidence selection (irrelevant or over budget)`;
     });
     if (remaining > 0) {

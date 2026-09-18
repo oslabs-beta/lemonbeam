@@ -158,6 +158,51 @@ When the scanning pipeline finishes, you'll be prompted interactively in your te
 - Type `y` to automatically save the generated guide as a markdown file in your project directory.
 - Type `n` to print and view the generated guide right in your terminal.
 
+---
+
+## Using the MCP Server
+
+LemonBeam can also run as a local [MCP](https://modelcontextprotocol.io) server, so an MCP-compatible client (Claude Desktop, Claude Code, or any other MCP client) can call it directly as a tool instead of going through the web UI or the CLI.
+
+It exposes one tool, `generate_onboarding_guide`, which takes a single argument — a public GitHub repository URL — and returns the same source-backed guide the website generates. It does not accept local file paths.
+
+Each person runs their own local copy of the server, using their own credentials — this mirrors LemonBeam's existing bring-your-own-key model (see `DECISIONS.md` > "User-Supplied OpenRouter API Key (BYOK)"), just supplied once at setup instead of once per scan.
+
+### 1. Build the server
+
+```bash
+npm install
+npm run build
+```
+
+This compiles `mcp/index.ts` to `dist/mcp/index.js`, which is what your MCP client will actually run.
+
+### 2. Get your credentials
+
+- **`OPENROUTER_API_KEY`** (required) — from [openrouter.ai](https://openrouter.ai/keys). Nothing works without this; the server refuses to start if it's missing.
+- **`GITHUB_TOKEN`** (optional, recommended) — a [GitHub personal access token](https://github.com/settings/tokens) with zero scopes selected (LemonBeam only ever reads public repository data). Without it, the server still runs, but GitHub API calls are capped at 60 requests/hour (roughly 12 scans/hour) instead of 5,000/hour.
+
+### 3. Add it to your MCP client's config
+
+Add an entry like this to your client's MCP server config (for example, Claude Desktop's `claude_desktop_config.json`, or a project's `.mcp.json` for Claude Code), using the absolute path to the file built in step 1:
+
+```json
+{
+  "mcpServers": {
+    "lemonbeam": {
+      "command": "node",
+      "args": ["/absolute/path/to/lemonbeam/dist/mcp/index.js"],
+      "env": {
+        "OPENROUTER_API_KEY": "your_openrouter_api_key_here",
+        "GITHUB_TOKEN": "your_github_personal_access_token_here"
+      }
+    }
+  }
+}
+```
+
+Restart your MCP client, and `generate_onboarding_guide` will be available as a tool.
+
 ## Running the Project
 
 ### Frontend
