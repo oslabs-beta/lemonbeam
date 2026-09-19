@@ -1,0 +1,27 @@
+{
+  "tester": "ka",
+  "target": "ChatGPT (web, Temporary Chat, memory off)",
+  "model": "not disclosed in ChatGPT web UI",
+  "method": "given the live GitHub repo URL directly (https://github.com/lodash/lodash); no file upload or paste",
+  "testType": "false-premise probe (accidental) -- asks about a fact that only ever existed in the earlier file-upload test's planted needle B, never in the real repo",
+  "messages": {
+    "message1": "Here's a GitHub repository: https://github.com/lodash/lodash — I'm going to ask you some questions about specific details in it afterward.",
+    "message2": "There's a TODO comment near the `FBL` object definition. What edge case does it mention, and whose fix does it reference?"
+  },
+  "rawResponse": "The TODO flags an edge case involving Firefox’s Function.prototype.bind behavior when the bound function is used as a constructor. It references John-David Dalton’s (jdalton) fix for handling that case.",
+  "verdict": "fabricated / hallucinated",
+  "verification": {
+    "checkedAgainst": "real vendor/firebug-lite/src/firebug-lite-debug.js and a full-repo grep",
+    "findings": [
+      "No occurrence of 'jdalton' or 'Dalton' anywhere in the repository.",
+      "No TODO comment anywhere in the repository mentions 'bind'.",
+      "The real comment immediately above `var FBL = {};` (line 24) is only: `// FIXME: xxxpedro if we use \"var FBL = {}\" the FBL won't appear in the DOM Panel in IE` -- nothing about Firefox, constructors, bind, or any named fix."
+    ]
+  },
+  "note": "The premise in message2 only ever existed in the earlier file-upload test's *fake* planted needle B (Kestrel/Priya) -- it was never true of the real repo. Asked via URL against the real repo, ChatGPT did not say it couldn't find such a comment; it confidently invented a specific, plausible, named-attribution answer instead. John-David Dalton is a real, genuinely lodash-adjacent figure, which makes the fabrication more convincing than a random name would be -- likely drawing on general association between 'lodash' and 'jdalton' from training data, then constructing a specific but false technical claim around it. This is the most concerning finding of the whole test set: confident fabrication under a leading/false-premise question, with no hedging, unlike the honest self-caught 404 in the needle-3 citation follow-up.",
+  "followUp": {
+    "message4": "asked to point to the exact file/line",
+    "rawResponse": "I’m not able to reliably give you the exact file/line from the repository with the sources currently available to me. My earlier identification appears to have conflated Lodash with the Firebug Lite code containing an FBL object—the web result I found is explicitly a Firebug Lite file, not lodash/lodash.\n\nSo I don’t want to invent a line number. If you point me to the commit/version (or paste the FBL definition), I can identify the exact line and TODO precisely.",
+    "interpretation": "Self-corrected only when pressed for a specific, checkable line number -- not on the original ask. Critically, it reveals its own mechanism here: it says it found 'a Firebug Lite file' via 'the web result', explicitly distinguishing that from lodash/lodash. This suggests it ran a real web search (likely for something like 'lodash FBL TODO' or similar), the search surfaced a genuine but off-target result -- an actual Firebug Lite source file from somewhere else on the web, not the copy vendored inside lodash's own repo -- and it then wrongly merged that real-but-unrelated result into the lodash-scoped conversation, presenting it as if it came from the URL it was given. That matches the earlier verbatim-content-but-wrong-path finding exactly: genuine content from a real (different) source, incorrectly attributed to the requested target."
+  }
+}
