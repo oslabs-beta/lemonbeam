@@ -1,47 +1,24 @@
 interface NavbarProps {
-  activeTab: "overview" | "cli" | "mcp";
-  onTabChange: (tab: "overview" | "cli" | "mcp") => void;
+  onAboutClick: () => void;
 }
 
-function Navbar({ activeTab, onTabChange }: NavbarProps) {
+function Navbar({ onAboutClick }: NavbarProps) {
   return (
     <header className="w-full border-b border-white/10 px-6 py-4 flex items-center justify-between max-w-7xl mx-auto">
       <button
+        type="button"
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        className="flex items-center gap-2 font-semibold text-lg text-white hover:opacity-80 transition-opacity"
+        className="flex items-center gap-2 font-semibold text-lg text-white hover:opacity-80 transition-opacity cursor-pointer"
       >
         Lemon<span className="text-[var(--color-yellow)]">Beam</span>
       </button>
       <nav className="flex items-center gap-6 text-sm font-medium text-zinc-400">
         <button
-          onClick={() => onTabChange("overview")}
-          className={`transition-colors text-left ${
-            activeTab === "overview"
-              ? "text-[var(--color-yellow)] font-semibold"
-              : "hover:text-[var(--color-yellow)]"
-          }`}
+          type="button"
+          onClick={onAboutClick}
+          className="hover:opacity-80 transition-opacity cursor-pointer text-white font-semibold text-base"
         >
-          Overview
-        </button>
-        <button
-          onClick={() => onTabChange("cli")}
-          className={`transition-colors text-left ${
-            activeTab === "cli"
-              ? "text-[var(--color-yellow)] font-semibold"
-              : "hover:text-[var(--color-yellow)]"
-          }`}
-        >
-          CLI Guide
-        </button>
-        <button
-          onClick={() => onTabChange("mcp")}
-          className={`transition-colors text-left ${
-            activeTab === "mcp"
-              ? "text-[var(--color-yellow)] font-semibold"
-              : "hover:text-[var(--color-yellow)]"
-          }`}
-        >
-          MCP Setup
+          About <span className="text-[var(--color-yellow)]">LemonBeam</span>
         </button>
       </nav>
     </header>
