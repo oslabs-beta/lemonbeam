@@ -44,6 +44,21 @@ describe("buildMvpGuidePrompt", () => {
         expect(content).toContain("[filePath:startLine-endLine]");
     });
 
+    it("tells the model to cite a chunk only when its text states the claim", () => {
+        const [system] = buildMvpGuidePrompt([makeChunk()]);
+        const content = system?.content as string;
+
+        expect(content).toContain("Cite a chunk only if its text itself states or clearly shows the claim");
+        expect(content).toContain("say the evidence does not show it instead");
+    });
+
+    it("tells the model to copy each range from the chunk header rather than adjust it", () => {
+        const [system] = buildMvpGuidePrompt([makeChunk()]);
+        const content = system?.content as string;
+
+        expect(content).toContain('exactly as they appear in the "--- location ---" header');
+    });
+
     it("cites a chunk with a line range as filePath:startLine-endLine", () => {
         const chunk = makeChunk({ filePath: "package.json", startLine: 6, endLine: 10 });
         const [, user] = buildMvpGuidePrompt([chunk]);

@@ -33,10 +33,197 @@ export interface GenerateGuideSectionOptions {
     chunks: Chunk[];
 }
 
+// Why a citation failed validation. `range_unverifiable` means the file was
+// supplied but only as chunks with no line range (see types/chunk.ts), so
+// there are no bounds to check the cited lines against.
+export type CitationFailureReason =
+    | "unknown_file"
+    | "invalid_range"
+    | "range_outside_chunks"
+    | "range_unverifiable";
+
+// One citation found in the model's output. Every citation is recorded, valid
+// or not; invalid ones have already been stripped from the returned text.
+// `downgraded` is set on a valid citation whose range was rewritten to the
+// file path alone (see checkCitation); `raw`, `startLine` and `endLine` still
+// show what the model originally wrote.
+export interface ValidatedCitation {
+    raw: string;
+    filePath: string;
+    startLine?: number;
+    endLine?: number;
+    valid: boolean;
+    downgraded?: boolean;
+    reason?: CitationFailureReason;
+}
+
 export interface GenerateGuideSectionResult {
     text: string;
-    citations: any[];
+    citations: ValidatedCitation[];
     uncertainty?: any;
+}
+
+// Fenced and inline code are matched first so brackets inside them (arr[0],
+// JSON arrays) are consumed and left alone. The third alternative is a
+// bracketed token not followed by "(" (a markdown link), allowing one level of
+// nested brackets so paths like pages/[id].tsx still parse. The optional
+// leading space lets a stripped citation take its preceding space with it.
+const BRACKET_TOKEN =
+    /```[\s\S]*?```|`[^`\n]*`|( ?)\[((?:[^\[\]\n]|\[[^\[\]\n]*\])+)\](?!\()/g;
+
+// "path", "path:start" or "path:start-end", with stray inner whitespace
+// tolerated. The path is everything before the range, so [] in it are fine.
+const CITATION_BODY = /^\s*(\S+?)\s*(?::\s*(\d+)(?:\s*[-–]\s*(\d+))?)?\s*$/;
+
+// Same shape, but the path may contain spaces ("docs/how to.md:1-3"). That is
+// too loose to trust on its own, since it would also match bracketed prose
+// ("see docs/setup for details"), so parseCitationBody only accepts it when
+// the path it captures is a file we supplied.
+const SPACED_CITATION_BODY = /^\s*(.+?)\s*(?::\s*(\d+)(?:\s*[-–]\s*(\d+))?)?\s*$/;
+
+// Model output varies ("./src/a.ts", "/.npmrc"); the chunks never do.
+function normalizeCitationPath(path: string): string {
+    return path.replace(/^(?:\.\/|\/)+/, "");
+}
+
+function parseCitationBody(
+    inner: string,
+    knownPaths: Map<string, Chunk[]>,
+): RegExpExecArray | null {
+    const body = CITATION_BODY.exec(inner);
+    if (body) return body;
+
+    const spaced = SPACED_CITATION_BODY.exec(inner);
+    return spaced && knownPaths.has(normalizeCitationPath(spaced[1]!)) ? spaced : null;
+}
+
+// A path-only bracket ("[optional]", "[1]", "[e.g.]") is ordinary prose unless
+// it looks like a file or names a supplied one. Anything with a line range is
+// always treated as a citation attempt.
+function looksLikeFilePath(path: string, knownPaths: Map<string, Chunk[]>): boolean {
+    return (
+        path.includes("/") ||
+        /\.[A-Za-z][A-Za-z0-9]*$/.test(path) ||
+        knownPaths.has(path)
+    );
+}
+
+type CitationCheck =
+    | { outcome: "valid" }
+    | { outcome: "downgrade" }
+    | { outcome: "invalid"; reason: CitationFailureReason };
+
+function checkCitation(
+    filePath: string,
+    startLine: number | undefined,
+    endLine: number | undefined,
+    chunksByPath: Map<string, Chunk[]>,
+): CitationCheck {
+    const fileChunks = chunksByPath.get(filePath);
+    if (!fileChunks) return { outcome: "invalid", reason: "unknown_file" };
+
+    // Path-only citations (the fallback for chunks without a line range) only
+    // need the file to have been supplied.
+    if (startLine === undefined || endLine === undefined) return { outcome: "valid" };
+
+    if (startLine < 1 || endLine < startLine) return { outcome: "invalid", reason: "invalid_range" };
+
+    const rangedChunks = fileChunks.filter(
+        (chunk) => chunk.startLine !== undefined && chunk.endLine !== undefined,
+    );
+    if (rangedChunks.length === 0) return { outcome: "invalid", reason: "range_unverifiable" };
+
+    const inside = (line: number) =>
+        rangedChunks.some((chunk) => line >= chunk.startLine! && line <= chunk.endLine!);
+
+    // A range inside a single supplied chunk is exactly the evidence the model
+    // was shown.
+    const contained = rangedChunks.some(
+        (chunk) => startLine >= chunk.startLine! && endLine <= chunk.endLine!,
+    );
+    if (contained) return { outcome: "valid" };
+
+    // The model often cites from the start of one chunk to the end of a later
+    // one, naming lines in between that it never saw. Both ends are real
+    // evidence, so keep the citation but reduce it to the file path, which is
+    // always true and short enough for a reader to follow. A range that starts
+    // or ends outside every chunk is not salvageable and is stripped.
+    if (inside(startLine) && inside(endLine)) return { outcome: "downgrade" };
+
+    return { outcome: "invalid", reason: "range_outside_chunks" };
+}
+
+// Parses every [filePath:startLine-endLine] / [filePath] citation out of the
+// model's markdown and checks it against the chunks that were sent to the
+// model (see DECISIONS.md > "Guide Citation Format"). Invalid citations are
+// stripped from the returned text and recorded in `citations`; the claim they
+// followed stays, uncited. A range that spans several supplied chunks is
+// rewritten to the file path alone rather than stripped.
+//
+// This proves a citation points at supplied evidence. It does NOT prove the
+// cited lines back the sentence they follow.
+function validateCitations(
+    text: string,
+    chunks: Chunk[],
+): { text: string; citations: ValidatedCitation[] } {
+    const chunksByPath = new Map<string, Chunk[]>();
+    for (const chunk of chunks) {
+        const existing = chunksByPath.get(chunk.filePath);
+        if (existing) existing.push(chunk);
+        else chunksByPath.set(chunk.filePath, [chunk]);
+    }
+
+    const citations: ValidatedCitation[] = [];
+    let anyDowngraded = false;
+
+    let cleaned = text.replace(
+        BRACKET_TOKEN,
+        (match: string, leadingSpace: string | undefined, inner: string | undefined, offset: number) => {
+            if (inner === undefined) return match; // a code span or fence
+
+            const body = parseCitationBody(inner, chunksByPath);
+            if (!body) return match;
+
+            const filePath = normalizeCitationPath(body[1]!);
+            const startLine = body[2] !== undefined ? Number(body[2]) : undefined;
+            // "path:12" is lenient shorthand for "path:12-12"
+            const endLine = body[3] !== undefined ? Number(body[3]) : startLine;
+
+            if (startLine === undefined && !looksLikeFilePath(filePath, chunksByPath)) {
+                return match;
+            }
+
+            const raw = match.slice(leadingSpace?.length ?? 0);
+            const check = checkCitation(filePath, startLine, endLine, chunksByPath);
+            citations.push({
+                raw,
+                filePath,
+                ...(startLine !== undefined && { startLine, endLine }),
+                valid: check.outcome !== "invalid",
+                ...(check.outcome === "downgrade" && { downgraded: true }),
+                ...(check.outcome === "invalid" && { reason: check.reason }),
+            });
+
+            if (check.outcome === "valid") return match;
+            if (check.outcome === "downgrade") {
+                anyDowngraded = true;
+                return `${leadingSpace ?? ""}[${filePath}]`;
+            }
+
+            // Keep the space before a chained citation ("x [bad][good]"); drop
+            // it otherwise so "x [bad]." doesn't become "x .".
+            const next = text[offset + match.length];
+            return next === "[" ? (leadingSpace ?? "") : "";
+        },
+    );
+
+    // Several downgraded ranges in one file, chained, would otherwise leave
+    // "[a.js][a.js]".
+    if (anyDowngraded) {
+        cleaned = cleaned.replace(/(\[[^\[\]\n]+\])(?:\1)+/g, "$1");
+    }
+
+    return { text: cleaned, citations };
 }
 
 async function generateGuideSection({
@@ -67,17 +254,17 @@ async function generateGuideSection({
         messages,
         });
 
-        const text = response?.choices?.[0]?.message?.content || "";
+        const rawText = response?.choices?.[0]?.message?.content || "";
 
-        //! TODO: Validate citations according to your classmate's format instructions
-        const citations: any[] = [];
+        // 4. Check every citation against the chunks actually sent to the model
+        const { text, citations } = validateCitations(rawText, chunks);
 
         return {
         text,
         citations,
         };
     } catch (error: any) {
-        // 4. Catch authentication errors from OpenRouter and rethrow mapped error code
+        // 5. Catch authentication errors from OpenRouter and rethrow mapped error code
         // Never log the API key or attach it to the error object
         if (
         error?.status === 401 ||
@@ -93,4 +280,4 @@ async function generateGuideSection({
     }
 }
 
-export { generateGuideSection };
+export { generateGuideSection, validateCitations };

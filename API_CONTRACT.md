@@ -182,7 +182,7 @@ The backend validates the key's format before starting the scan, and validates t
 | `guide.markdown` | string | Complete generated guide in Markdown |
 
 
-The generated guide includes source citations within its content.
+The generated guide includes source citations within its content. Each citation points at a file, and usually a line range, that LemonBeam supplied to the model; a line range that stretched beyond a single supplied passage is reduced to the file path, and citations that did not match at all are removed before the guide is returned. A citation shows where the evidence is, not a guarantee that the cited lines support the sentence.
 
 ## Processing Behavior
 
