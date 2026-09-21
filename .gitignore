@@ -28,3 +28,4 @@ backend/data/*.sqlite-wal
 *.sln
 *.sw?
 *.tsbuildinfo
+run-mcp.sh

@@ -456,15 +456,39 @@ function App() {
                   3. Add to Your MCP Client Config & Restart
                 </h3>
                 <p className="text-zinc-400 text-xs mb-3">
-                  Add the block below to your client's config file (e.g.,{" "}
+                  Add the block below to your Claude Desktop configuration file
+                  (
                   <code className="text-[var(--color-yellow)]">
                     claude_desktop_config.json
                   </code>
-                  ) using your absolute path and keys, then{" "}
-                  <strong className="text-zinc-200">
-                    restart your AI tool
-                  </strong>
-                  :
+                  ).
+                  <span className="block mt-2 text-zinc-300 font-medium">
+                    How to access your config file:
+                  </span>
+                  <span className="block mt-1">
+                    <strong>macOS:</strong> Open Claude &gt; Settings &gt;
+                    Developer &gt; Edit Config (or open{" "}
+                    <code className="text-[var(--color-yellow)]">
+                      ~/Library/Application
+                      Support/Claude/claude_desktop_config.json
+                    </code>
+                    ).
+                  </span>
+                  <span className="block mt-1">
+                    <strong>Windows:</strong> Open Settings &gt; Developer &gt;
+                    Edit Config (or open{" "}
+                    <code className="text-[var(--color-yellow)]">
+                      %APPDATA%\Claude\claude_desktop_config.json
+                    </code>
+                    ).
+                  </span>
+                  <span className="block mt-2">
+                    Use your absolute path and credentials, then{" "}
+                    <strong className="text-zinc-200">
+                      fully restart your AI tool
+                    </strong>
+                    :
+                  </span>
                 </p>
                 <div className="bg-black/60 border border-white/10 rounded-lg p-3 font-mono text-xs text-[var(--color-yellow)] overflow-x-auto mb-4">
                   <pre>{`{\n  "mcpServers": {\n    "lemonbeam": {\n      "command": "node",\n      "args": ["/absolute/path/to/lemonbeam/dist/mcp/index.js"],\n      "env": {\n        "OPENROUTER_API_KEY": "your_key_here",\n        "GITHUB_TOKEN": "your_token_here"\n      }\n    }\n  }\n}`}</pre>
