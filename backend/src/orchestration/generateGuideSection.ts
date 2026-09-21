@@ -75,9 +75,26 @@ const BRACKET_TOKEN =
 // tolerated. The path is everything before the range, so [] in it are fine.
 const CITATION_BODY = /^\s*(\S+?)\s*(?::\s*(\d+)(?:\s*[-–]\s*(\d+))?)?\s*$/;
 
+// Same shape, but the path may contain spaces ("docs/how to.md:1-3"). That is
+// too loose to trust on its own, since it would also match bracketed prose
+// ("see docs/setup for details"), so parseCitationBody only accepts it when
+// the path it captures is a file we supplied.
+const SPACED_CITATION_BODY = /^\s*(.+?)\s*(?::\s*(\d+)(?:\s*[-–]\s*(\d+))?)?\s*$/;
+
 // Model output varies ("./src/a.ts", "/.npmrc"); the chunks never do.
 function normalizeCitationPath(path: string): string {
     return path.replace(/^(?:\.\/|\/)+/, "");
+}
+
+function parseCitationBody(
+    inner: string,
+    knownPaths: Map<string, Chunk[]>,
+): RegExpExecArray | null {
+    const body = CITATION_BODY.exec(inner);
+    if (body) return body;
+
+    const spaced = SPACED_CITATION_BODY.exec(inner);
+    return spaced && knownPaths.has(normalizeCitationPath(spaced[1]!)) ? spaced : null;
 }
 
 // A path-only bracket ("[optional]", "[1]", "[e.g.]") is ordinary prose unless
@@ -164,7 +181,7 @@ function validateCitations(
         (match: string, leadingSpace: string | undefined, inner: string | undefined, offset: number) => {
             if (inner === undefined) return match; // a code span or fence
 
-            const body = CITATION_BODY.exec(inner);
+            const body = parseCitationBody(inner, chunksByPath);
             if (!body) return match;
 
             const filePath = normalizeCitationPath(body[1]!);

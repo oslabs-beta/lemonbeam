@@ -308,6 +308,39 @@ describe("validateCitations", () => {
         { raw: "[pages/[id].tsx:2-9]", filePath: "pages/[id].tsx", startLine: 2, endLine: 9, valid: true },
       ]);
     });
+
+    it("parses a supplied path that contains a space", () => {
+      const withSpace = [...chunks, makeChunk({ filePath: "docs/how to.md", startLine: 1, endLine: 30 })];
+
+      const result = validateCitations("x [docs/how to.md:1-3].", withSpace);
+
+      expect(result.text).toBe("x [docs/how to.md:1-3].");
+      expect(result.citations).toEqual([
+        { raw: "[docs/how to.md:1-3]", filePath: "docs/how to.md", startLine: 1, endLine: 3, valid: true },
+      ]);
+    });
+
+    it("validates the range of a supplied path that contains a space", () => {
+      const withSpace = [...chunks, makeChunk({ filePath: "docs/how to.md", startLine: 1, endLine: 30 })];
+
+      const result = validateCitations("x [docs/how to.md:50-60].", withSpace);
+
+      expect(result.text).toBe("x.");
+      expect(result.citations[0]).toMatchObject({
+        filePath: "docs/how to.md",
+        valid: false,
+        reason: "range_outside_chunks",
+      });
+    });
+
+    it("does not treat bracketed prose that mentions a path as a citation", () => {
+      const input = "Configure it [see docs/setup for details] before running.";
+
+      const result = validateCitations(input, chunks);
+
+      expect(result.text).toBe(input);
+      expect(result.citations).toEqual([]);
+    });
   });
 
   describe("things that are not citations", () => {
