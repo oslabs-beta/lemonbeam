@@ -72,19 +72,37 @@ Use ONLY the evidence chunks supplied in the user message. Never invent file pat
 `;
 
 // Implements the source-backed citation decision in DECISIONS.md — this is
-// the exact inline bracketed format
-// orchestration/generateGuideSection.ts's citation validator will parse
-// and check against the supplied chunks. If this wording ever changes,
-// whoever owns that validator needs to know, since their parsing logic
-// depends on the model actually producing this exact shape.
+// the exact inline bracketed format that validateCitations, in
+// orchestration/generateGuideSection.ts, parses and checks against the
+// supplied chunks (a range spanning several chunks is reduced to the file
+// path; any other citation that doesn't match is stripped). If this wording
+// ever changes, whoever owns that validator needs to know, since its parsing
+// logic depends on the model actually producing this exact shape.
+//
+// The prompt deliberately does NOT tell the model its citations are checked:
+// a live moment scan with that sentence produced a leaked
+// "[path --- invalid citation?]" note in the guide text.
+//
+// The validator only proves a citation points at supplied evidence, not that
+// the cited lines back the claim. The "cite a chunk only if its text states
+// the claim" rules below are the only defence against that second failure —
+// an audit of five test-run guides found it was more common than invalid
+// paths (e.g. citing an HTML page's error handler for "the entry points
+// are...").
 const citationFormat = `
 Every claim in every section must be followed by a citation in this exact format: [filePath:startLine-endLine]
 
 Example: "Install dependencies with \`npm install\` [package.json:6-10]."
 
+Copy the file path and line range exactly as they appear in the "--- location ---" header of the evidence chunk you are citing. Do not adjust, narrow, extend, or combine ranges, and do not guess line numbers inside a chunk.
+
+Cite a chunk only if its text itself states or clearly shows the claim. Do not cite a chunk just because it comes from the right folder or is the right kind of file, and do not reuse one citation to cover an unrelated claim. If no supplied chunk states a claim, do not cite an unrelated chunk to cover it — say the evidence does not show it instead.
+
 If a claim is supported by more than one chunk, chain multiple citations directly after each other: [package.json:5-8][vite.config.ts:1-12]
 
 Some evidence chunks have no line range. For those, cite the file path alone, with no colon or numbers: [package.json]
+
+To say that a folder or file exists, or to describe what a folder contains, cite the file path alone — [filePath] — of a file you were shown from that folder. A line range adds nothing to that kind of claim.
 
 Do not cite a file or line range that was not given to you in the evidence below.
 `;
@@ -101,10 +119,10 @@ If the supplied evidence is incomplete, ambiguous, or does not clearly answer pa
 // A worked example is included because describing the citation rule alone
 // is less reliable than also showing it done correctly — this is what
 // actually teaches the model consistent formatting.
-// NOTE: this only demonstrates the multi-line-range/multi-citation case,
-// not the [filePath]-only fallback for chunks with no line range — adding
-// a second example covering that case would likely make the model more
-// consistent there.
+// It covers the four cases the rules above describe: a range citation, a
+// path-only citation for a chunk with no range, a folder claim cited by
+// path alone, and a claim the evidence doesn't support (stated as such,
+// with no citation).
 const example = `
 EXAMPLE — study this to match the citation style and tone:
 
@@ -116,8 +134,15 @@ Evidence:
   "dependencies": { "react": "^19.0.0" }
 }
 
-Correct excerpt from a "Running Locally" section:
-Run \`npm run dev\` to start the local development server [package.json:1-12]. This project uses Vite as its build tool, based on the dev and build scripts [package.json:1-12].
+--- README.md ---
+# example-app
+A small React demo.
+
+--- src/components/Button.tsx:1-14 ---
+export function Button() { return <button>Click</button>; }
+
+Correct excerpt from a guide:
+Run \`npm run dev\` to start the local development server [package.json:1-12]. This project uses Vite as its build tool, based on the dev and build scripts [package.json:1-12]. It is a small React demo [README.md]. Reusable UI components live under \`src/components/\` [src/components/Button.tsx]. The evidence does not show which port the dev server listens on.
 `;
 
 // Deliberately repeats the most critical rule at the very end, not just
@@ -125,7 +150,7 @@ Run \`npm run dev\` to start the local development server [package.json:1-12]. T
 // prompt helps counter instruction drift, where the model weighs earlier
 // instructions less by the time it's generated a lot of text.
 const closingReminder = `
-Reminder: never invent evidence, and cite every claim using the exact format above.
+Reminder: never invent evidence, cite every claim using the exact format above, and cite a chunk only when its text actually states the claim.
 `;
 
 const systemPrompt = [

@@ -621,7 +621,8 @@ When evidence is missing or unclear, LemonBeam reports uncertainty rather than g
 ### Consequences
 
 - The LLM receives source evidence selected for its section.
-- Returned citations must correspond to repository evidence.
+- Returned citations must correspond to repository evidence. `generateGuideSection.ts` enforces this mechanically: a citation to a file that was not supplied, or to lines outside every supplied chunk, is removed (see "Guide Citation Format").
+- Validation confirms that a citation points at supplied evidence. It does **not** confirm that the cited lines support the sentence they follow. That is enforced only by the prompt, which tells the model to cite a chunk only when its text states the claim, so a valid citation can still be a poor one. An audit of five test-run guides (2026-09-21, sampled by hand) found this was the more common failure: about 1 in 9 sampled citations pointed at real, in-range lines that did not back the claim. A live lodash scan the same day also showed that about a third of the model's range citations stretched across several supplied chunks, which is why those are downgraded to the file path.
 - Unsupported repository facts should not appear as confident claims.
 
 ---
@@ -632,7 +633,7 @@ When evidence is missing or unclear, LemonBeam reports uncertainty rather than g
 
 Guide citations use one fixed inline format: `[filePath:startLine-endLine]`, placed directly after the claim it supports — e.g. "Install dependencies with `npm install` [package.json:6-10]." A claim backed by more than one chunk chains multiple brackets: `[package.json:5-8][vite.config.ts:1-12]`.
 
-For chunks without a line range (some chunkers — e.g. fallback text-block or whole-file config chunks — may not produce one; see `types/chunk.ts`), the citation drops the range and uses the file path alone: `[filePath]`.
+For chunks without a line range (some chunkers — e.g. fallback text-block or whole-file config chunks — may not produce one; see `types/chunk.ts`), the citation drops the range and uses the file path alone: `[filePath]`. The prompt also tells the model to use the path-only form for claims that only say a file or folder exists or what a folder contains, since a line range adds nothing to those.
 
 ### Reasons
 
@@ -643,7 +644,8 @@ For chunks without a line range (some chunkers — e.g. fallback text-block or w
 ### Consequences
 
 - `prompts/mvpGuidePrompt.ts`'s prompt must instruct the model to produce this exact format, with examples.
-- `orchestration/generateGuideSection.ts` parses citations out of the returned markdown using this format and validates each one against the chunks it supplied — a citation whose `filePath`/line range doesn't match a real chunk indicates an invented claim (see "Source-Backed Claims and Citation Validation").
+- `orchestration/generateGuideSection.ts` (`validateCitations`) parses citations out of the returned markdown using this format and validates each one against the chunks it supplied. A citation is valid if its `filePath` matches a supplied chunk and, for a range citation, the range sits inside a single supplied chunk's line range. A range that instead runs from one supplied chunk's start to a later chunk's end (the model often stretches a citation across several adjacent chunks, naming lines it was never shown) is downgraded to the file path alone, e.g. `[test/a.js:5-23]` becomes `[test/a.js]`: the file was supplied, so this is always true, and it stays readable, unlike a chain of the individual chunk ranges. Any other failing citation (unknown file, invalid range, or a range that starts or ends outside every supplied chunk) is stripped from the guide text; the claim it followed stays, uncited. Every citation, downgraded or stripped, is recorded in the result's `citations` list (see "Source-Backed Claims and Citation Validation").
+- The validator normalises a leading `/` or `./` and stray whitespace inside the brackets, and leaves markdown links, code spans, and ordinary bracketed prose alone.
 - The final `guide.markdown` users see displays these bracketed tokens as-is; the format is intentionally terse and mechanical for reliable parsing, not a polished prose citation style.
 
 ---
