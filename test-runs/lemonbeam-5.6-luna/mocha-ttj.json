@@ -6,6 +6,8 @@
     "usage": { "promptTokens": 77936, "completionTokens": 2095 },
     "wallClockSeconds": 16.9,
     "timeToFirstTokenSeconds": 3.57,
+    "repoSize": "32888 KB",
+    "note": "",
     "response": {
         "scanId": "scan_acab1d37-7740-4458-8205-d4dbad4012f3",
         "repository": {
