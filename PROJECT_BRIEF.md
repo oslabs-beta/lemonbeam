@@ -245,7 +245,7 @@ The challenge is to make each section’s evidence selection broad enough to fin
 
 Generated claims must be supported by repository evidence.
 
-Each primary section includes citations so users can verify important claims against the analyzed repository.
+Each primary section includes citations so users can verify important claims against the analyzed repository. The model is instructed to cite the evidence for each claim, and LemonBeam removes any citation that does not point at a file it actually supplied, and reduces a line range that stretches beyond a single supplied passage to just the file. This guarantees the citations resolve to real evidence, not that every cited passage supports its claim, so users should still check important claims.
 
 When the evidence does not support a confident answer, LemonBeam should report uncertainty rather than guess.
 

@@ -422,7 +422,9 @@ LemonBeam is bring-your-own-key (BYOK). The OpenRouter API key used for a scan c
 
 Generated sections must remain source-backed.
 
-Citation validation checks that the model refers only to evidence supplied to that section task.
+Citation validation (`validateCitations` in `orchestration/generateGuideSection.ts`) checks that each citation in the model's output refers only to evidence supplied to that task: the file must have been supplied, and a line range must sit inside one supplied chunk's range. A range stretched across several supplied chunks is reduced to the file path alone. Any other citation that fails is removed from the guide text. All of them are recorded in the returned `citations` list.
+
+It does not check that the cited lines support the sentence they follow. That is guided by the prompt, not enforced.
 
 Repository claims should be connected to stored evidence such as:
 
