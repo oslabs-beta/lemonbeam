@@ -388,23 +388,19 @@ function App() {
               <h2 className="text-3xl font-bold tracking-tight text-white mb-2">
                 MCP Server Integration
               </h2>
-              <p className="text-zinc-400 text-sm max-w-xl mx-auto">
-                Connect LemonBeam directly to your local AI assistant workspace
-                (like Claude Desktop or Claude Code) via Model Context Protocol.
+              <p className="text-zinc-300 text-base max-w-xl mx-auto">
+                Use LemonBeam as a tool inside Claude Desktop, Claude Code, or
+                any MCP client.
               </p>
             </div>
 
             <div className="max-w-2xl mx-auto space-y-6">
               {/* Step 1 */}
               <div className="bg-zinc-900/50 border border-white/10 rounded-xl p-6">
-                <h3 className="font-semibold text-white text-sm mb-1">
-                  1. Build the Server
+                <h3 className="font-semibold text-white text-base mb-2">
+                  1. Build the server
                 </h3>
-                <p className="text-zinc-400 text-xs mb-3">
-                  Clone the repository, install dependencies, and build the
-                  server locally:
-                </p>
-                <div className="bg-black/60 border border-white/10 rounded-lg p-3 font-mono text-xs text-[var(--color-yellow)] space-y-1">
+                <div className="bg-black/60 border border-white/10 rounded-lg p-4 font-mono text-sm text-[var(--color-yellow)] space-y-1">
                   <p>git clone https://github.com/oslabs-beta/lemonbeam.git</p>
                   <p>cd lemonbeam</p>
                   <p>npm install</p>
@@ -414,85 +410,33 @@ function App() {
 
               {/* Step 2 */}
               <div className="bg-zinc-900/50 border border-white/10 rounded-xl p-6">
-                <h3 className="font-semibold text-white text-sm mb-1">
-                  2. Get Your Credentials
+                <h3 className="font-semibold text-white text-base mb-2">
+                  2. Get an API key
                 </h3>
-                <ul className="text-zinc-400 text-xs space-y-2 list-disc list-inside">
-                  <li>
-                    <strong className="text-zinc-200">
-                      OpenRouter API Key (Required):
-                    </strong>{" "}
-                    Get yours from{" "}
-                    <a
-                      href="https://openrouter.ai/keys"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[var(--color-yellow)] hover:underline"
-                    >
-                      openrouter.ai/keys
-                    </a>
-                    .
-                  </li>
-                  <li>
-                    <strong className="text-zinc-200">
-                      GitHub Personal Access Token (Optional):
-                    </strong>{" "}
-                    Get yours from{" "}
-                    <a
-                      href="https://github.com/settings/tokens"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[var(--color-yellow)] hover:underline"
-                    >
-                      github.com/settings/tokens
-                    </a>{" "}
-                    with zero scopes required. Increases rate limits from 60 to
-                    5,000 requests/hour.
-                  </li>
-                </ul>
+                <p className="text-zinc-300 text-sm">
+                  Create an OpenRouter key at{" "}
+                  <a
+                    href="https://openrouter.ai/keys"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[var(--color-yellow)] hover:underline"
+                  >
+                    openrouter.ai/keys
+                  </a>
+                  .
+                </p>
               </div>
 
               {/* Step 3 */}
               <div className="bg-zinc-900/50 border border-white/10 rounded-xl p-6">
-                <h3 className="font-semibold text-white text-sm mb-1">
-                  3. Add to Your MCP Client Config & Restart
+                <h3 className="font-semibold text-white text-base mb-2">
+                  3. Add it to your AI tool and restart
                 </h3>
-                <p className="text-zinc-400 text-xs mb-3">
-                  Add the block below to your Claude Desktop configuration file
-                  (
-                  <code className="text-[var(--color-yellow)]">
-                    claude_desktop_config.json
-                  </code>
-                  ).
-                  <span className="block mt-2 text-zinc-300 font-medium">
-                    How to access your config file:
-                  </span>
-                  <span className="block mt-1">
-                    <strong>macOS:</strong> Open Claude &gt; Settings &gt;
-                    Developer &gt; Edit Config (or open{" "}
-                    <code className="text-[var(--color-yellow)]">
-                      ~/Library/Application
-                      Support/Claude/claude_desktop_config.json
-                    </code>
-                    ).
-                  </span>
-                  <span className="block mt-1">
-                    <strong>Windows:</strong> Open Settings &gt; Developer &gt;
-                    Edit Config (or open{" "}
-                    <code className="text-[var(--color-yellow)]">
-                      %APPDATA%\Claude\claude_desktop_config.json
-                    </code>
-                    ).
-                  </span>
-                  <span className="block mt-2">
-                    Use your absolute path and credentials, then{" "}
-                    <strong className="text-zinc-200">
-                      fully restart your AI tool
-                    </strong>
-                    :
-                  </span>
+                <p className="text-zinc-300 text-sm mb-4">
+                  Paste this into your MCP config, fill in your LemonBeam folder
+                  path and your key, then fully restart the app.
                 </p>
-                <div className="bg-black/60 border border-white/10 rounded-lg p-3 font-mono text-xs text-[var(--color-yellow)] overflow-x-auto mb-4">
+                <div className="bg-black/60 border border-white/10 rounded-lg p-4 font-mono text-sm text-[var(--color-yellow)] overflow-x-auto mb-3">
                   <pre>{`{\n  "mcpServers": {\n    "lemonbeam": {\n      "command": "node",\n      "args": ["/absolute/path/to/lemonbeam/dist/mcp/index.js"],\n      "env": {\n        "OPENROUTER_API_KEY": "your_key_here"\n      }\n    }\n  }\n}`}</pre>
                 </div>
                 <button
@@ -501,27 +445,113 @@ function App() {
                       '{\n  "mcpServers": {\n    "lemonbeam": {\n      "command": "node",\n      "args": ["/absolute/path/to/lemonbeam/dist/mcp/index.js"],\n      "env": {\n        "OPENROUTER_API_KEY": "your_key_here"\n      }\n    }\n  }\n}',
                     )
                   }
-                  className="w-full py-2 bg-white/5 hover:bg-white/10 text-xs font-medium rounded-lg transition text-zinc-200 border border-white/10 flex items-center justify-center gap-2 mb-3"
+                  className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-sm font-medium rounded-lg transition text-zinc-200 border border-white/10 flex items-center justify-center gap-2 mb-4"
                 >
                   Copy MCP Config
                 </button>
-                <p className="text-zinc-400 text-xs mb-3">
-                  Optional: for higher GitHub rate limits, add{" "}
-                  <code className="text-[var(--color-yellow)]">
-                    "GITHUB_TOKEN": "your_token"
-                  </code>{" "}
-                  to <code className="text-[var(--color-yellow)]">env</code>.
-                  Only add it with a real token; a placeholder makes every scan
-                  fail.
-                </p>
-                <p className="text-zinc-400 text-xs italic">
-                  Once restarted, ask your assistant to use the{" "}
-                  <code className="text-[var(--color-yellow)]">
-                    generate_onboarding_guide
-                  </code>{" "}
-                  tool on any public GitHub URL!
+                <details className="text-sm text-zinc-300">
+                  <summary className="cursor-pointer text-zinc-200 font-medium">
+                    Where's my config file?
+                  </summary>
+                  <ul className="mt-3 space-y-2 list-disc list-inside">
+                    <li>
+                      <strong className="text-zinc-100">Claude Desktop:</strong>{" "}
+                      Settings → Developer → Edit Config
+                    </li>
+                    <li>
+                      <strong className="text-zinc-100">Claude Code:</strong> a{" "}
+                      <code className="font-mono text-zinc-100">.mcp.json</code>{" "}
+                      file in your project root
+                    </li>
+                  </ul>
+                </details>
+              </div>
+
+              {/* Step 4 */}
+              <div className="bg-zinc-900/50 border border-white/10 rounded-xl p-6">
+                <h3 className="font-semibold text-white text-base mb-2">
+                  4. Try it
+                </h3>
+                <p className="text-zinc-300 text-sm">
+                  Ask your assistant: "Generate an onboarding guide for
+                  https://github.com/owner/repo"
                 </p>
               </div>
+
+              {/* Troubleshooting */}
+              <details className="bg-zinc-900/50 border border-white/10 rounded-xl p-6 text-sm text-zinc-300">
+                <summary className="cursor-pointer font-semibold text-white text-base">
+                  Troubleshooting
+                </summary>
+                <ul className="mt-4 space-y-3 list-disc list-inside">
+                  <li>
+                    <strong className="text-zinc-100">
+                      Not sure of your path?
+                    </strong>{" "}
+                    Run <code className="font-mono text-zinc-100">pwd</code>{" "}
+                    (Windows: <code className="font-mono text-zinc-100">cd</code>
+                    ) inside the lemonbeam folder.
+                  </li>
+                  <li>
+                    <strong className="text-zinc-100">
+                      Already have other MCP servers?
+                    </strong>{" "}
+                    Add only the{" "}
+                    <code className="font-mono text-zinc-100">"lemonbeam"</code>{" "}
+                    entry inside your existing{" "}
+                    <code className="font-mono text-zinc-100">mcpServers</code>.
+                  </li>
+                  <li>
+                    <strong className="text-zinc-100">On Windows?</strong> Use
+                    forward slashes in the path:{" "}
+                    <code className="font-mono text-zinc-100">
+                      C:/Users/you/lemonbeam/...
+                    </code>
+                  </li>
+                  <li>
+                    <strong className="text-zinc-100">
+                      Server won't start?
+                    </strong>{" "}
+                    If you use nvm, replace{" "}
+                    <code className="font-mono text-zinc-100">"node"</code> with
+                    the output of{" "}
+                    <code className="font-mono text-zinc-100">which node</code>{" "}
+                    (Windows:{" "}
+                    <code className="font-mono text-zinc-100">where node</code>).
+                  </li>
+                  <li>
+                    <strong className="text-zinc-100">
+                      Build printed type errors?
+                    </strong>{" "}
+                    If{" "}
+                    <code className="font-mono text-zinc-100">
+                      dist/mcp/index.js
+                    </code>{" "}
+                    exists, the build worked.
+                  </li>
+                  <li>
+                    <strong className="text-zinc-100">
+                      Hitting GitHub rate limits?
+                    </strong>{" "}
+                    Add{" "}
+                    <code className="font-mono text-zinc-100">
+                      "GITHUB_TOKEN": "your_token"
+                    </code>{" "}
+                    to <code className="font-mono text-zinc-100">env</code>{" "}
+                    (with a comma after the line above it). Create one at{" "}
+                    <a
+                      href="https://github.com/settings/tokens"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[var(--color-yellow)] hover:underline"
+                    >
+                      github.com/settings/tokens
+                    </a>
+                    , no scopes needed. Never leave a placeholder token in; it
+                    makes every scan fail.
+                  </li>
+                </ul>
+              </details>
             </div>
           </div>
 
