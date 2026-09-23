@@ -63,6 +63,18 @@ General-purpose AI tools can often produce readable repository summaries, but re
 
 LemonBeam currently supports public JavaScript and TypeScript GitHub repositories. Private repositories, monorepos, and non-GitHub providers are outside the current launch scope.
 
+## Privacy
+
+LemonBeam uses a bring-your-own-key flow. OpenRouter API keys are sent only for the active scan request and are not stored by the frontend.
+
+## Current Limitations
+
+- Public GitHub repositories only
+- JavaScript and TypeScript repositories only
+- Private repositories are not currently supported
+- Monorepos are not currently supported
+- Large repositories may have some evidence excluded through token budgeting
+
 ## Local Development
 
 ### Prerequisites
@@ -167,7 +179,7 @@ npm run typecheck
 - OpenRouter API
 - Tree-sitter
 - tiktoken
-- SQLite utilities
+- SQLite schema placeholders for future evidence storage
 
 ## Optional Local Interfaces
 
