@@ -179,13 +179,13 @@ LemonBeam can also be run locally as a CLI to scan a project directory and gener
 
 #### 1. Configure Your Environment
 
-Create a `.env` file in the directory where you plan to run the CLI:
+The simplest way to run the CLI is to pass your OpenRouter key directly with the `--key` flag when you run the command.
+
+You can also create a `.env` file in the directory where you plan to run the CLI if you do not want to pass the key every time:
 
 ```env
 OPENROUTER_API_KEY=your-openrouter-api-key-here
 ```
-
-You can also pass your key directly with the `--key` flag.
 
 #### 2. Clone, Build, And Link LemonBeam
 
@@ -202,13 +202,13 @@ npm link
 From the root of the project you want to scan:
 
 ```bash
-npx lemonbeam
+npx lemonbeam --key your-openrouter-api-key-here
 ```
 
-Or pass your OpenRouter key directly:
+If you configured `OPENROUTER_API_KEY` in `.env`, you can run:
 
 ```bash
-npx lemonbeam --key your-openrouter-api-key-here
+npx lemonbeam
 ```
 
 By default, the CLI scans the current directory. You can also pass a local project path or supported GitHub repository URL.
