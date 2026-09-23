@@ -405,6 +405,8 @@ function App() {
                   server locally:
                 </p>
                 <div className="bg-black/60 border border-white/10 rounded-lg p-3 font-mono text-xs text-[var(--color-yellow)] space-y-1">
+                  <p>git clone https://github.com/oslabs-beta/lemonbeam.git</p>
+                  <p>cd lemonbeam</p>
                   <p>npm install</p>
                   <p>npm run build</p>
                 </div>
@@ -491,18 +493,27 @@ function App() {
                   </span>
                 </p>
                 <div className="bg-black/60 border border-white/10 rounded-lg p-3 font-mono text-xs text-[var(--color-yellow)] overflow-x-auto mb-4">
-                  <pre>{`{\n  "mcpServers": {\n    "lemonbeam": {\n      "command": "node",\n      "args": ["/absolute/path/to/lemonbeam/dist/mcp/index.js"],\n      "env": {\n        "OPENROUTER_API_KEY": "your_key_here",\n        "GITHUB_TOKEN": "your_token_here"\n      }\n    }\n  }\n}`}</pre>
+                  <pre>{`{\n  "mcpServers": {\n    "lemonbeam": {\n      "command": "node",\n      "args": ["/absolute/path/to/lemonbeam/dist/mcp/index.js"],\n      "env": {\n        "OPENROUTER_API_KEY": "your_key_here"\n      }\n    }\n  }\n}`}</pre>
                 </div>
                 <button
                   onClick={() =>
                     navigator.clipboard.writeText(
-                      '{\n  "mcpServers": {\n    "lemonbeam": {\n      "command": "node",\n      "args": ["/absolute/path/to/lemonbeam/dist/mcp/index.js"],\n      "env": {\n        "OPENROUTER_API_KEY": "your_key_here",\n        "GITHUB_TOKEN": "your_token_here"\n      }\n    }\n  }\n}',
+                      '{\n  "mcpServers": {\n    "lemonbeam": {\n      "command": "node",\n      "args": ["/absolute/path/to/lemonbeam/dist/mcp/index.js"],\n      "env": {\n        "OPENROUTER_API_KEY": "your_key_here"\n      }\n    }\n  }\n}',
                     )
                   }
                   className="w-full py-2 bg-white/5 hover:bg-white/10 text-xs font-medium rounded-lg transition text-zinc-200 border border-white/10 flex items-center justify-center gap-2 mb-3"
                 >
                   Copy MCP Config
                 </button>
+                <p className="text-zinc-400 text-xs mb-3">
+                  Optional: for higher GitHub rate limits, add{" "}
+                  <code className="text-[var(--color-yellow)]">
+                    "GITHUB_TOKEN": "your_token"
+                  </code>{" "}
+                  to <code className="text-[var(--color-yellow)]">env</code>.
+                  Only add it with a real token; a placeholder makes every scan
+                  fail.
+                </p>
                 <p className="text-zinc-400 text-xs italic">
                   Once restarted, ask your assistant to use the{" "}
                   <code className="text-[var(--color-yellow)]">

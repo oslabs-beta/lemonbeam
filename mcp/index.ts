@@ -6,6 +6,7 @@
 // the CLI (cli/index.ts), and this file are the three callers of that one
 // pipeline entry point — none of them own scan logic themselves.
 import "dotenv/config";
+import { pathToFileURL } from "node:url";
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -95,7 +96,9 @@ async function main() {
 
 // Only run the server when this file is executed directly (`node
 // dist/mcp/index.js`), not when a test imports buildServer() from it.
-if (import.meta.url === `file://${process.argv[1]}`) {
+// pathToFileURL encodes the path (spaces -> %20, Windows backslashes) so it
+// matches import.meta.url's format.
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   main();
 }
 

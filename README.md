@@ -112,7 +112,7 @@ AGENTS.md
 ### Installation
 
 ~~~bash
-git clone <repository-url>
+git clone https://github.com/oslabs-beta/lemonbeam.git
 
 cd lemonbeam/frontend
 npm install
@@ -171,6 +171,8 @@ Each person runs their own local copy of the server, using their own credentials
 ### 1. Build the server
 
 ```bash
+git clone https://github.com/oslabs-beta/lemonbeam.git
+cd lemonbeam
 npm install
 npm run build
 ```
@@ -193,13 +195,14 @@ Add an entry like this to your client's MCP server config (for example, Claude D
       "command": "node",
       "args": ["/absolute/path/to/lemonbeam/dist/mcp/index.js"],
       "env": {
-        "OPENROUTER_API_KEY": "your_openrouter_api_key_here",
-        "GITHUB_TOKEN": "your_github_personal_access_token_here"
+        "OPENROUTER_API_KEY": "your_openrouter_api_key_here"
       }
     }
   }
 }
 ```
+
+Optional: to raise the GitHub rate limit, add `"GITHUB_TOKEN": "your_github_personal_access_token"` to `env`. Only add it with a real token — a placeholder value makes every scan fail.
 
 Restart your MCP client, and `generate_onboarding_guide` will be available as a tool.
 
