@@ -2,65 +2,152 @@
 
 LemonBeam shines a fresh beam of light on an unfamiliar codebase.
 
-It scans a public JavaScript or TypeScript GitHub repository and generates a fixed-format contributor guide that helps new developers understand the project more quickly. Rather than sending an entire repository directly to an LLM, LemonBeam classifies repository files, creates meaningful chunks, retrieves only the evidence relevant to each guide section, and generates a source-backed guide with citations.
+LemonBeam is a source-backed onboarding guide generator for public GitHub repositories. It helps developers understand a JavaScript or TypeScript project by scanning the repository, selecting relevant evidence, and generating a contributor-oriented guide with citations back to the source.
 
----
+Instead of asking an LLM to reason over an entire repository at once, LemonBeam breaks the repo into meaningful pieces, ranks useful evidence, keeps the prompt within a token budget, and returns a structured guide that new contributors can inspect and verify.
+
+## Try LemonBeam
+
+[Launch LemonBeam](https://TODO-add-deployed-url.example.com)
+
+Paste a public GitHub repository URL, enter your OpenRouter API key, and generate a source-backed onboarding guide.
+
+## Demo
+
+![LemonBeam generated guide screenshot](docs/assets/lemonbeam-generated-guide.png)
+
+_LemonBeam generating a source-backed onboarding guide with inline repository citations._
+
+[Watch the LemonBeam demo video](docs/assets/lemonbeam-demo.mov)
+
+## What LemonBeam Generates
+
+LemonBeam produces a fixed-format onboarding guide with sections for:
+
+- Project Overview
+- Setup / Installation
+- Running Locally
+- Project Structure
+- Testing
+- Uncertainties and Missing Information
+
+Each guide is generated from repository evidence selected for the scan. When LemonBeam cannot confidently analyze something, it reports that uncertainty instead of silently pretending the information was available.
+
+## Who It Is For
+
+LemonBeam is built for:
+
+- developers joining an unfamiliar codebase
+- open-source contributors deciding where to start
+- maintainers who want a quick contributor-facing guide
 
 ## Why LemonBeam?
 
-Understanding an unfamiliar repository is difficult.
+Developer onboarding information is often scattered across README files, package scripts, configuration files, source folders, and test suites.
 
-Important information is often scattered across:
+General-purpose AI tools can often produce readable repository summaries, but readable is not always reliable. LemonBeam focuses on making repository guides more:
 
-- README files
-- package.json scripts
-- configuration files
-- folder structure
-- test suites
-- source code
+- **grounded** — generated from selected repository evidence
+- **inspectable** — connected to source citations
+- **consistent** — returned in a predictable guide format
+- **bounded** — designed to stay within token limits instead of dumping an entire repo into a model
+- **honest** — skipped or excluded evidence is surfaced in the guide
 
-Developers often paste a repository into an AI assistant hoping for an explanation, but the results depend heavily on the prompt and available context.
+## How To Use The Web App
 
-LemonBeam takes a deterministic approach by:
+1. Open the deployed LemonBeam app.
+2. Paste a public GitHub repository URL.
+3. Enter your OpenRouter API key.
+4. Generate the guide.
+5. Review the Markdown guide and use the citations to inspect the source files behind the claims.
 
-- scanning the repository
-- organizing repository evidence
-- retrieving only the information relevant to each guide section
-- generating a repeatable, source-backed contributor guide
+LemonBeam currently supports public JavaScript and TypeScript GitHub repositories. Private repositories, monorepos, and non-GitHub providers are outside the current launch scope.
 
----
+## Local Development
 
-## Features
+### Prerequisites
 
-### MVP
+- Node.js
+- npm
+- An OpenRouter API key for guide generation
+- A GitHub personal access token is recommended for repository validation rate limits
 
-- Scan public GitHub JavaScript and TypeScript repositories
-- Generate a fixed-format contributor guide
-- Source-backed sections with citations
-- Tree-sitter parsing for JavaScript and TypeScript
-- Rule-based repository classification
-- Deterministic SQLite retrieval
-- React web interface
+### Install
 
----
+```bash
+git clone <repository-url>
+cd lemonbeam
 
-## Example Guide Structure
+npm install
 
-The generated guide includes:
+cd frontend
+npm install
 
-- Repository Information
-- Project Overview
-- Prerequisites
-- Installation and Environment Setup
-- Running and Building
-- Project Structure
-- Testing
-- Key Files and Entry Points
-- Suggested Reading Order
-- Uncertainties and Missing Information
-- Source Citations
+cd ../backend
+npm install
+```
 
----
+### Configure Environment
+
+Create a local backend environment file:
+
+```bash
+cp backend/.env.example backend/.env
+```
+
+Then update `backend/.env` as needed:
+
+```env
+OPENROUTER_API_KEY=your-openrouter-api-key-here
+GITHUB_TOKEN=your-github-token-here
+PORT=3000
+```
+
+For the web app, LemonBeam uses a bring-your-own-key flow: the OpenRouter key is normally entered in the UI for each scan and is not stored by the frontend.
+
+### Run The App
+
+From the project root:
+
+```bash
+npm run dev
+```
+
+This starts the frontend and backend development servers together.
+
+You can also run them separately:
+
+```bash
+npm run dev:frontend
+npm run dev:backend
+```
+
+## Running Tests
+
+From the project root:
+
+```bash
+npm test
+```
+
+For watch mode:
+
+```bash
+npm run test:watch
+```
+
+Frontend linting:
+
+```bash
+npm run lint
+```
+
+Backend type checking:
+
+```bash
+cd backend
+npm run typecheck
+```
 
 ## Technology Stack
 
@@ -76,115 +163,76 @@ The generated guide includes:
 - Node.js
 - Express
 - TypeScript
-- SQLite
-- Tree-sitter
 - GitHub API
-- OpenRouter API (BYOK)
+- OpenRouter API
+- Tree-sitter
+- tiktoken
+- SQLite utilities
 
----
+## Optional Local Interfaces
 
-## Repository Structure
+The primary launch experience is the web app, but the repository also includes local interfaces for experimentation.
 
-~~~text
-frontend/
-backend/
+### CLI
 
-README.md
-PROJECT_BRIEF.md
-ARCHITECTURE.md
-DATABASE.md
-API_CONTRACT.md
-TESTING.md
-DECISIONS.md
-CONTRIBUTING.md
-AGENTS.md
-~~~
+LemonBeam can also be run locally as a CLI to scan a project directory and generate an onboarding guide.
 
----
+#### 1. Configure Your Environment
 
-## Getting Started
-
-### Prerequisites
-
-- Node.js
-- npm
-
-### Installation
-
-~~~bash
-git clone <repository-url>
-
-cd lemonbeam/frontend
-npm install
-
-cd ../backend
-npm install
-~~~
-
----
-
-## Using the CLI
-
-LemonBeam can be run directly from your terminal as a command-line tool to analyze any local project directory and generate an AI-powered documentation guide.
-
-### 1. Configure Your Environment
-
-Create a `.env` file in the root of your project directory and add your OpenRouter API key:
+Create a `.env` file in the directory where you plan to run the CLI:
 
 ```env
-OPENROUTER_API_KEY=your_openrouter_api_key_here
+OPENROUTER_API_KEY=your-openrouter-api-key-here
 ```
 
-### 2. Link LemonBeam Locally
+You can also pass your key directly with the `--key` flag.
 
-If you are testing or running the tool locally from source, link it to your project:
+#### 2. Clone, Build, And Link LemonBeam
 
 ```bash
-npm link lemonbeam
+git clone https://github.com/oslabs-beta/lemonbeam.git
+cd lemonbeam
+npm install
+npm run build
+npm link
 ```
 
-### 3. Run the CLI
+#### 3. Run The CLI
 
-Navigate into the root of any project you want to scan and execute:
+From the root of the project you want to scan:
 
 ```bash
 npx lemonbeam
 ```
 
-### 4. Choose Your Output Format
-
-When the scanning pipeline finishes, you'll be prompted interactively in your terminal:
-
-- Type `y` to automatically save the generated guide as a markdown file in your project directory.
-- Type `n` to print and view the generated guide right in your terminal.
-
----
-
-## Using the MCP Server
-
-LemonBeam can also run as a local [MCP](https://modelcontextprotocol.io) server, so an MCP-compatible client (Claude Desktop, Claude Code, or any other MCP client) can call it directly as a tool instead of going through the web UI or the CLI.
-
-It exposes one tool, `generate_onboarding_guide`, which takes a single argument — a public GitHub repository URL — and returns the same source-backed guide the website generates. It does not accept local file paths.
-
-Each person runs their own local copy of the server, using their own credentials — this mirrors LemonBeam's existing bring-your-own-key model (see `DECISIONS.md` > "User-Supplied OpenRouter API Key (BYOK)"), just supplied once at setup instead of once per scan.
-
-### 1. Build the server
+Or pass your OpenRouter key directly:
 
 ```bash
+npx lemonbeam --key your-openrouter-api-key-here
+```
+
+By default, the CLI scans the current directory. You can also pass a local project path or supported GitHub repository URL.
+
+### MCP Server
+
+LemonBeam can also run as a local MCP server, allowing Claude Desktop, Claude Code, or another MCP-compatible client to call LemonBeam as a tool.
+
+#### 1. Build The Server
+
+```bash
+git clone https://github.com/oslabs-beta/lemonbeam.git
+cd lemonbeam
 npm install
 npm run build
 ```
 
-This compiles `mcp/index.ts` to `dist/mcp/index.js`, which is what your MCP client will actually run.
+#### 2. Get An API Key
 
-### 2. Get your credentials
+Create an OpenRouter key at [openrouter.ai/keys](https://openrouter.ai/keys).
 
-- **`OPENROUTER_API_KEY`** (required) — from [openrouter.ai](https://openrouter.ai/keys). Nothing works without this; the server refuses to start if it's missing.
-- **`GITHUB_TOKEN`** (optional, recommended) — a [GitHub personal access token](https://github.com/settings/tokens) with zero scopes selected (LemonBeam only ever reads public repository data). Without it, the server still runs, but GitHub API calls are capped at 60 requests/hour (roughly 12 scans/hour) instead of 5,000/hour.
+#### 3. Add LemonBeam To Your MCP Client
 
-### 3. Add it to your MCP client's config
-
-Add an entry like this to your client's MCP server config (for example, Claude Desktop's `claude_desktop_config.json`, or a project's `.mcp.json` for Claude Code), using the absolute path to the file built in step 1:
+Add this to your MCP client config, replacing the path and key with your local values:
 
 ```json
 {
@@ -193,67 +241,78 @@ Add an entry like this to your client's MCP server config (for example, Claude D
       "command": "node",
       "args": ["/absolute/path/to/lemonbeam/dist/mcp/index.js"],
       "env": {
-        "OPENROUTER_API_KEY": "your_openrouter_api_key_here",
-        "GITHUB_TOKEN": "your_github_personal_access_token_here"
+        "OPENROUTER_API_KEY": "your-key-here"
       }
     }
   }
 }
 ```
 
-Restart your MCP client, and `generate_onboarding_guide` will be available as a tool.
+Config locations:
 
-## Running the Project
+- **Claude Desktop:** Settings → Developer → Edit Config
+- **Claude Code:** `.mcp.json` in your project root
 
-### Frontend
+After saving the config, fully restart your MCP client.
 
-```bash
-cd frontend
+#### 4. Try It
 
-npm run dev
+Ask your assistant:
+
+```text
+Generate an onboarding guide for https://github.com/owner/repo
 ```
-### Backend
 
-```bash
+See the [in-app MCP setup guide](https://TODO-add-deployed-url.example.com/#mcp) for the walkthrough and troubleshooting notes.
 
-cd backend
+## Project Documentation
 
-npm run dev
-```
----
+- `PROJECT_BRIEF.md` — product goals, MVP scope, guide format, user flow, and evaluation plan
+- `ARCHITECTURE.md` — system architecture and backend design
+- `API_CONTRACT.md` — frontend/backend API specification
+- `DATABASE.md` — SQLite schema notes and lifecycle
+- `TESTING.md` — testing strategy
+- `DECISIONS.md` — architectural decisions and rationale
+- `CONTRIBUTING.md` — contributor workflow
+- `AGENTS.md` — instructions for AI coding agents
 
-## Running Tests
+## Get Involved
 
-To run the automated test suite, use the following commands:
+We welcome contributions to LemonBeam.
 
-```bash
-# Run tests once
-npm test
+1. Fork the repository.
+2. Create a feature branch:
 
-# Run tests in watch mode
-npm run test:watch
-```
----
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
 
-## Documentation
+3. Make your changes and add or update tests when behavior changes.
+4. Commit your work:
 
-PROJECT_BRIEF.md — project goals, MVP, user flow, and technical challenges
-ARCHITECTURE.md — system architecture and backend design
-DATABASE.md — temporary SQLite schema and relationships
-API_CONTRACT.md — frontend/backend API specification
-TESTING.md — testing strategy
-DECISIONS.md — architectural decisions and rationale
-CONTRIBUTING.md — contributor workflow
-AGENTS.md — instructions for AI coding agents
----
+   ```bash
+   git commit -m "Add your feature description"
+   ```
 
-## Contributing
+5. Push your branch:
 
-Please read CONTRIBUTING.md before opening an issue or submitting a pull request.
+   ```bash
+   git push origin feature/your-feature-name
+   ```
 
----
+6. Open a pull request with a clear summary and testing notes.
+
+The LemonBeam team will review your pull request and provide feedback.
+
+## Looking Ahead
+
+- Stronger citation validation
+- Better uncertainty summaries
+- Better error reporting
+- Larger repository support
+- Broader language support
+- Private repository support
 
 ## License
 
-This project is currently under development.
-License information will be added before the first public release.
+LemonBeam is open source under the [MIT License](LICENSE).
