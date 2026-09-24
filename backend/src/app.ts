@@ -1,5 +1,7 @@
 import express, { Request, Response, NextFunction } from "express";
 import { scanRouter } from "./routes/scans.js";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 // This file builds and configures the Express app — middleware, routes,
 // the 404 handler, the error handler. Nothing here ever starts a real
@@ -20,6 +22,12 @@ app.get("/api/health", (_req: Request, res: Response, next: NextFunction) => {
   res.locals.data = { status: "ok" };
   next();
 });
+
+// ---- SERVE THE BUILT FRONTEND (production) ----
+// In dev, Vite serves the React app. In production there is no Vite,
+// so Express serves the built files from frontend/dist.
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+app.use(express.static(path.resolve(__dirname, "../../frontend/dist")));
 
 // ---- 404 CATCH-ALL (must come after every real route) ----
 // Only sets a 404 if no route above already set res.locals.status.
