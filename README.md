@@ -225,6 +225,8 @@ npx lemonbeam
 
 By default, the CLI scans the current directory. You can also pass a local project path or supported GitHub repository URL.
 
+After the scan finishes, the CLI asks whether to save the generated guide as a Markdown file or print a preview in the terminal.
+
 ### MCP Server
 
 LemonBeam can also run as a local MCP server, allowing Claude Desktop, Claude Code, or another MCP-compatible client to call LemonBeam as a tool.
@@ -260,12 +262,14 @@ Add this to your MCP client config, replacing the path and key with your local v
 }
 ```
 
+Optional: to raise the GitHub rate limit, add `"GITHUB_TOKEN": "your_github_personal_access_token"` to `env`. Only add it with a real token — a placeholder value makes every scan fail.
+
 Config locations:
 
 - **Claude Desktop:** Settings → Developer → Edit Config
 - **Claude Code:** `.mcp.json` in your project root
 
-After saving the config, fully restart your MCP client.
+After saving the config, fully restart your MCP client. The `generate_onboarding_guide` tool will then be available.
 
 #### 4. Try It
 
