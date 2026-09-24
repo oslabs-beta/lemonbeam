@@ -69,10 +69,10 @@ LemonBeam uses a bring-your-own-key flow. OpenRouter API keys are sent only for 
 
 ## Current Limitations
 
-- Public GitHub repositories only
-- JavaScript and TypeScript repositories only
-- Private repositories are not currently supported
-- Monorepos are not currently supported
+- Web app: public GitHub repositories only
+- Web app: JavaScript and TypeScript repositories only
+- Web app: private repositories are not currently supported
+- Web app: monorepos are not currently supported
 - Large repositories may have some evidence excluded through token budgeting
 
 ## Local Development
