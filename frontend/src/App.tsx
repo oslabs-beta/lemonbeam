@@ -334,44 +334,42 @@ function App() {
               {/* Step 1 */}
               <div className="bg-zinc-900/50 border border-white/10 rounded-xl p-6">
                 <h3 className="font-semibold text-white text-sm mb-1">
-                  1. Configure Your Environment
+                  1. Clone, Build & Link
                 </h3>
                 <p className="text-zinc-400 text-xs mb-3">
-                  Create a{" "}
-                  <code className="text-[var(--color-yellow)]">.env</code> file
-                  in your project root with your OpenRouter API key:
+                  Clone the repository, install dependencies, build the package,
+                  and link it globally:
                 </p>
-                <div className="bg-black/60 border border-white/10 rounded-lg p-3 font-mono text-xs text-[var(--color-yellow)]">
-                  OPENROUTER_API_KEY=your_openrouter_api_key_here
+                <div className="bg-black/60 border border-white/10 rounded-lg p-3 font-mono text-xs text-[var(--color-yellow)] space-y-1 mb-4">
+                  <p>git clone https://github.com/oslabs-beta/lemonbeam.git</p>
+                  <p>cd lemonbeam</p>
+                  <p>npm install</p>
+                  <p>npm run build</p>
+                  <p>npm link</p>
                 </div>
               </div>
 
-              {/* Step 2 & 3 */}
+              {/* Step 2 */}
               <div className="bg-zinc-900/50 border border-white/10 rounded-xl p-6">
                 <h3 className="font-semibold text-white text-sm mb-1">
-                  2. Link & Run the CLI
+                  2. Run the CLI
                 </h3>
                 <p className="text-zinc-400 text-xs mb-3">
-                  Link the package locally from source, then navigate to any
-                  project you want to scan and execute:
+                  Navigate into the root of any project you want to scan and
+                  execute using your OpenRouter API key flag:
                 </p>
                 <div className="bg-black/60 border border-white/10 rounded-lg p-3 font-mono text-xs text-[var(--color-yellow)] space-y-1 mb-4">
-                  <p className="text-zinc-500"># Run once to link locally</p>
-                  <p>npm link lemonbeam</p>
-                  <p className="text-zinc-500 mt-2">
-                    # Inside any project directory:
-                  </p>
-                  <p>npx lemonbeam</p>
+                  <p>lemonbeam --key your_openrouter_api_key_here</p>
                 </div>
                 <button
                   onClick={() =>
                     navigator.clipboard.writeText(
-                      "npm link lemonbeam\nnpx lemonbeam",
+                      "git clone https://github.com/oslabs-beta/lemonbeam.git\ncd lemonbeam\nnpm install\nnpm run build\nnpm link\n\n# Inside any target project directory:\nnpx lemonbeam --key your_openrouter_api_key_here",
                     )
                   }
                   className="w-full py-2 bg-white/5 hover:bg-white/10 text-xs font-medium rounded-lg transition text-zinc-200 border border-white/10 flex items-center justify-center gap-2"
                 >
-                  Copy CLI Commands
+                  Copy CLI Setup Commands
                 </button>
               </div>
             </div>
