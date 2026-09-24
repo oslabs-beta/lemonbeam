@@ -359,7 +359,7 @@ function App() {
                   execute using your OpenRouter API key flag:
                 </p>
                 <div className="bg-black/60 border border-white/10 rounded-lg p-3 font-mono text-xs text-[var(--color-yellow)] space-y-1 mb-4">
-                  <p>npx lemonbeam --key your_openrouter_api_key_here</p>
+                  <p>lemonbeam --key your_openrouter_api_key_here</p>
                 </div>
                 <button
                   onClick={() =>

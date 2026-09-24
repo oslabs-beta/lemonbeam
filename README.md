@@ -132,7 +132,8 @@ LemonBeam can be run directly from your terminal as a command-line tool to analy
 Clone the repository, install dependencies, build the package, and link it globally:
 
 ```bash
-git clone [https://github.com/oslabs-beta/lemonbeam.git](https://github.com/oslabs-beta/lemonbeam.git)
+git clone [https://github.com/oslabs-beta/lemonbeam.git]
+(https://github.com/oslabs-beta/lemonbeam.git)
 cd lemonbeam
 npm install
 npm run build
@@ -144,7 +145,7 @@ npm link
 Navigate into the root of any project you want to scan and execute:
 
 ```bash
-npx lemonbeam --key your_openrouter_api_key_here
+lemonbeam --key your_openrouter_api_key_here
 ```
 
 ### 3. Choose Your Output Format
