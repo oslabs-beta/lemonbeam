@@ -127,31 +127,28 @@ npm install
 
 LemonBeam can be run directly from your terminal as a command-line tool to analyze any local project directory and generate an AI-powered documentation guide.
 
-### 1. Configure Your Environment
+### 1. Clone & Build Locally
 
-Create a `.env` file in the root of your project directory and add your OpenRouter API key:
-
-```env
-OPENROUTER_API_KEY=your_openrouter_api_key_here
-```
-
-### 2. Link LemonBeam Locally
-
-If you are testing or running the tool locally from source, link it to your project:
+Clone the repository, install dependencies, build the package, and link it globally:
 
 ```bash
-npm link lemonbeam
+git clone [https://github.com/oslabs-beta/lemonbeam.git]
+(https://github.com/oslabs-beta/lemonbeam.git)
+cd lemonbeam
+npm install
+npm run build
+npm link
 ```
 
-### 3. Run the CLI
+### 2. Run the CLI
 
 Navigate into the root of any project you want to scan and execute:
 
 ```bash
-npx lemonbeam
+lemonbeam --key your_openrouter_api_key_here
 ```
 
-### 4. Choose Your Output Format
+### 3. Choose Your Output Format
 
 When the scanning pipeline finishes, you'll be prompted interactively in your terminal:
 
