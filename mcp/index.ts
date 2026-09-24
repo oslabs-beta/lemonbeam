@@ -98,7 +98,7 @@ async function main() {
 // dist/mcp/index.js`), not when a test imports buildServer() from it.
 // pathToFileURL encodes the path (spaces -> %20, Windows backslashes) so it
 // matches import.meta.url's format.
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main();
 }
 
