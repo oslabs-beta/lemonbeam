@@ -214,7 +214,7 @@ npm link
 From the root of the project you want to scan:
 
 ```bash
-npx lemonbeam --key your-openrouter-api-key-here
+lemonbeam --key your-openrouter-api-key-here
 ```
 
 If you configured `OPENROUTER_API_KEY` in `.env`, you can run:
