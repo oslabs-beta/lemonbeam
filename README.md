@@ -8,7 +8,7 @@ Instead of asking an LLM to reason over an entire repository at once, LemonBeam 
 
 ## Try LemonBeam
 
-[Launch LemonBeam](https://TODO-add-deployed-url.example.com)
+[Launch LemonBeam](https://lemonbeam.app)
 
 Paste a public GitHub repository URL, enter your OpenRouter API key, and generate a source-backed onboarding guide.
 
@@ -275,7 +275,7 @@ Ask your assistant:
 Generate an onboarding guide for https://github.com/owner/repo
 ```
 
-See the [in-app MCP setup guide](https://TODO-add-deployed-url.example.com/#mcp) for the walkthrough and troubleshooting notes.
+See the [in-app MCP setup guide](https://lemonbeam.app/#mcp) for the walkthrough and troubleshooting notes.
 
 ## Project Documentation
 
